@@ -64,6 +64,7 @@
       cam.fadeIn(600, 5, 7, 13);
 
       this.fx.ambient(worldW, worldH);
+      AK.audio.playMusic('cave');
       this.createOverlay();
 
       this.scale.on('resize', this.onResize, this);
@@ -190,6 +191,7 @@
       this.fx.coinSparkle(c.x, c.y);
       c.destroy();
       AK.save.coins++;
+      AK.sfx('coin');
       AK.saveGame();
       this.updateHud(true);
     }
@@ -203,6 +205,7 @@
       if (res === 'blocked') {
         e.bounceOff(-Math.sign(p.x - e.x) || p.facing);
         this.fx.blockSparks(p.x + p.facing * 9, p.y - 14);
+        AK.sfx('block');
         this.cameras.main.shake(70, 0.003);
         return;
       }
@@ -215,6 +218,7 @@
       this.cameras.main.flash(120, 120, 20, 30);
       this.fx.hitSparks(this.player.x, this.player.y - 14);
       this.hitStop(110);
+      AK.sfx(res === 'dead' ? 'death' : 'hurt');
       if (res === 'dead') this.playerDied();
     }
 
@@ -238,6 +242,7 @@
         if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
         hit = true;
         e.takeHit(p.facing);
+        if (!e.dead) AK.sfx('hit');
         this.fx.hitSparks(Phaser.Math.Clamp(p.x + p.facing * 16, r.left, r.right), Phaser.Math.Clamp(p.y - 16, r.top, r.bottom));
       }
       if (hit) p.recoil(-p.facing * AK.TUNING.hitRecoil, 110);

@@ -53,6 +53,7 @@
       this.body.enable = false;
       const cy = this.y - this.displayHeight * this.originY + this.displayHeight / 2;
       this.scene.fx.enemyBurst(this.x, cy, this.burstTint);
+      AK.sfx('enemyDie');
       this.scene.spawnCoins(this.x, cy, this.coinDrop);
       this.setTintFill(0xffffff);
       this.scene.tweens.add({
@@ -168,6 +169,7 @@
             this.anims.stop();
             this.setFrame('windup');
             this.setTint(0xffb070);
+            AK.sfx('windup');
             b.setVelocityX(0);
             break;
           }

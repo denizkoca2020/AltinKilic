@@ -86,6 +86,22 @@ body.touch #controls {
 .btn-attack { grid-column: 1; grid-row: 2; }
 .btn-jump { grid-column: 2; grid-row: 2; border-color: rgba(223, 230, 245, 0.5); }
 
+/* ---------- Ses tuşu ---------- */
+#mute {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  right: calc(14px + env(safe-area-inset-right));
+  z-index: 15;
+  width: 46px;
+  height: 46px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid rgba(242, 199, 90, 0.4);
+  background: rgba(10, 14, 28, 0.45);
+  cursor: pointer;
+}
+#mute svg { width: 100%; height: 100%; display: block; }
+
 /* ---------- Başlangıç ve "çevirin" ekranları ---------- */
 .overlay {
   position: absolute;

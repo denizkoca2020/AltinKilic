@@ -29,6 +29,7 @@
       this.setTintFill(0xffffff);
       scene.time.delayedCall(70, () => this.clearTint());
       scene.fx.straw(this.x, this.y - 22, dir);
+      AK.sfx('thud');
     }
   }
 

@@ -84,7 +84,10 @@
       }
 
       // iniş efekti
-      if (onGround && !this.wasOnGround && this.prevVy > 220) this.scene.fx.landDust(this.x, this.y);
+      if (onGround && !this.wasOnGround && this.prevVy > 220) {
+        this.scene.fx.landDust(this.x, this.y);
+        AK.sfx('land');
+      }
       this.wasOnGround = onGround;
       this.prevVy = body.velocity.y;
 
@@ -136,6 +139,7 @@
         this.jumpBufferUntil = 0;
         this.lastGroundAt = -Infinity;
         this.scene.fx.jumpDust(this.x, this.y);
+        AK.sfx('jump');
       }
       if (!input.held.jump && body.velocity.y < TUNING.jumpCutVelocity) {
         body.setVelocityY(TUNING.jumpCutVelocity);
@@ -148,6 +152,7 @@
         this.attackEndAt = time + TUNING.attackDurationMs;
         this.attackHitAt = time + TUNING.attackHitDelayMs;
         this.play('w-attack', true);
+        AK.sfx('swing');
       }
       if (this.state === 'attack') {
         if (this.attackHitAt && time >= this.attackHitAt) {
@@ -215,6 +220,7 @@
       this.jumping = false;
       this.play('w-dash', true);
       this.scene.fx.dashBurst(this.x, this.y - 12, this.facing);
+      AK.sfx('dash');
     }
 
     // Kılıcın vurduğu alan (dünya koordinatlarında)

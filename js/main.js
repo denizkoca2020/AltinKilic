@@ -65,6 +65,29 @@
     document.body.classList.add('keyboard');
   }
 
+  // ---- Ses ----
+  // iPad sesi ancak bir dokunuştan sonra açar; arka plandan dönünce de yeniden açılması gerekir
+  const unlockAudio = () => AK.audio.unlock();
+  ['touchend', 'click', 'keydown'].forEach((t) => window.addEventListener(t, unlockAudio, true));
+  const muteBtn = document.getElementById('mute');
+  const SPEAKER = (on) => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="6" width="3" height="4" fill="#dfe6f5"/><rect x="5" y="5" width="1" height="6" fill="#dfe6f5"/>
+    <rect x="6" y="4" width="1" height="8" fill="#dfe6f5"/><rect x="7" y="3" width="1" height="10" fill="#dfe6f5"/>
+    ${on ? '<rect x="10" y="6" width="1" height="4" fill="#f2c75a"/><rect x="12" y="4" width="1" height="8" fill="#f2c75a"/>'
+         : '<rect x="10" y="5" width="1" height="1" fill="#e06060"/><rect x="11" y="6" width="1" height="1" fill="#e06060"/><rect x="12" y="7" width="1" height="2" fill="#e06060"/><rect x="11" y="9" width="1" height="1" fill="#e06060"/><rect x="10" y="10" width="1" height="1" fill="#e06060"/><rect x="13" y="6" width="1" height="1" fill="#e06060"/><rect x="14" y="5" width="1" height="1" fill="#e06060"/><rect x="13" y="9" width="1" height="1" fill="#e06060"/><rect x="14" y="10" width="1" height="1" fill="#e06060"/>'}
+  </svg>`;
+  const applyMute = () => {
+    AK.audio.setMuted(!!AK.save.muted);
+    muteBtn.innerHTML = SPEAKER(!AK.save.muted);
+  };
+  muteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    AK.save.muted = !AK.save.muted;
+    AK.saveGame();
+    applyMute();
+  });
+  applyMute();
+
   // ---- Başlangıç ekranı ----
   const title = document.getElementById('title');
   const start = () => {
