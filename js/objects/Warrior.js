@@ -17,6 +17,13 @@
     dashSpeed: 370,
     dashMs: 170,
     dashCooldownMs: 480,
+    maxHp: 5,
+    hurtMs: 260, // darbe sonrası kontrolün kısa süre kaybı
+    invulnMs: 1300, // darbe sonrası dokunulmazlık
+    hurtKnockX: 170,
+    hurtKnockY: -220,
+    hitRecoil: 110, // düşmana vurunca geri tepme hızı
+    blockRecoil: 150, // kalkanla engelleyince geri kayma
   };
   AK.TUNING = TUNING;
 
@@ -48,6 +55,12 @@
       this.wasOnGround = false;
       this.prevVy = 0;
       this.slash = null;
+      this.hp = TUNING.maxHp;
+      this.dead = false;
+      this.hurtEndAt = 0;
+      this.invulnUntil = 0;
+      this.recoilUntil = 0;
+      this.recoilVx = 0;
 
       this.play('w-idle');
     }
@@ -59,6 +72,10 @@
     update(time, input) {
       const body = this.body;
       const onGround = this.onGround;
+      if (this.dead) return;
+
+      // dokunulmazken yanıp söner
+      this.setAlpha(time < this.invulnUntil && Math.floor(time / 70) % 2 ? 0.35 : 1);
 
       if (onGround) {
         this.lastGroundAt = time;
@@ -74,6 +91,12 @@
       if (input.consume('jump')) this.jumpBufferUntil = time + TUNING.jumpBufferMs;
       const wantAttack = input.consume('attack');
       const wantDash = input.consume('dash');
+
+      // ---- Darbe aldı: kısa süre kontrol yok ----
+      if (this.state === 'hurt') {
+        if (time < this.hurtEndAt) { this.updateSlash(); return; }
+        this.state = 'normal';
+      }
 
       // ---- Atılma ----
       if (wantDash && time >= this.dashReadyAt && this.state !== 'dash' && (onGround || this.canAirDash)) {
@@ -100,7 +123,7 @@
       // ---- Yatay hareket ----
       const dir = (input.held.right ? 1 : 0) - (input.held.left ? 1 : 0);
       const speed = this.shielding && onGround ? TUNING.shieldSpeed : TUNING.runSpeed;
-      body.setVelocityX(dir * speed);
+      body.setVelocityX(time < this.recoilUntil ? this.recoilVx : dir * speed);
       // saldırı sırasında yön kilitlenir; kalkanla geri geri yürünebilir
       if (dir !== 0 && this.state !== 'attack' && !this.shielding) this.facing = dir;
       this.setFlipX(this.facing < 0);
@@ -137,6 +160,46 @@
 
       this.updateSlash();
       this.updateAnim(dir, onGround);
+    }
+
+    // Geri tepme (düşmana vurunca ya da kalkanla engelleyince)
+    recoil(vx, ms) {
+      this.recoilVx = vx;
+      this.recoilUntil = this.scene.time.now + ms;
+    }
+
+    // Düşman temas etti. Sonuç: 'blocked' | 'hurt' | 'dead' | null (dokunulmaz)
+    hurt(sourceX) {
+      const time = this.scene.time.now;
+      if (this.dead || time < this.invulnUntil) return null;
+      const away = Math.sign(this.x - sourceX) || -this.facing; // oyuncuyu iten yön
+
+      // kalkan önden gelen saldırıyı engeller
+      if (this.shielding && this.facing === -away) {
+        this.recoil(away * TUNING.blockRecoil, 140);
+        this.invulnUntil = time + 250;
+        return 'blocked';
+      }
+
+      this.hp = Math.max(0, this.hp - 1);
+      this.endDash();
+      this.state = 'hurt';
+      this.shielding = false;
+      this.hurtEndAt = time + TUNING.hurtMs;
+      this.invulnUntil = time + TUNING.invulnMs;
+      this.jumping = false;
+      this.body.setVelocity(away * TUNING.hurtKnockX, TUNING.hurtKnockY);
+      this.play('w-hurt', true);
+      if (this.hp === 0) {
+        this.dead = true;
+        this.body.setVelocity(away * 60, -150);
+        return 'dead';
+      }
+      return 'hurt';
+    }
+
+    endDash() {
+      if (this.state === 'dash') this.body.setAllowGravity(true);
     }
 
     startDash(time, input, onGround) {

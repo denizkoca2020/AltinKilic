@@ -41,6 +41,20 @@
       this.physics.add.collider(this.player, this.ground);
       this.safePos = { x: this.player.x, y: this.player.y };
 
+      // ---- Düşmanlar ve altınlar ----
+      this.enemies = this.add.group();
+      for (const e of L.OBJECTS.enemies) {
+        const Cls = AK.ENEMY_TYPES[e.type];
+        const ex = e.x * t + t / 2;
+        const ey = e.type === 'flyer' ? e.y * t + t / 2 : (e.y + 1) * t;
+        this.enemies.add(new Cls(this, ex, ey));
+      }
+      this.coins = this.add.group();
+      this.physics.add.collider(this.enemies, this.ground);
+      this.physics.add.collider(this.coins, this.ground);
+      this.physics.add.overlap(this.player, this.enemies, (p, e) => this.onEnemyContact(e));
+      this.physics.add.overlap(this.player, this.coins, (p, c) => this.collectCoin(c));
+
       // ---- Kamera ----
       const cam = this.cameras.main;
       cam.setBounds(0, 0, worldW, worldH);
@@ -110,10 +124,43 @@
       this.fog = this.add.tileSprite(0, height - 80, width, 90, 'fog').setOrigin(0).setScrollFactor(0).setDepth(13).setAlpha(0.35);
       this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(90).setDisplaySize(width, height);
 
+      // can (altın miğferler)
       this.hud = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < AK.TUNING.maxHp; i++) {
         this.hud.push(this.add.image(12 + i * 14, 12, 'hp', 'full').setOrigin(0).setScrollFactor(0).setDepth(100));
       }
+      // altın sayacı
+      this.coinIcon = this.add.sprite(14, 34, 'coin', 'c0').setOrigin(0).setScrollFactor(0).setDepth(100).play('coin-spin');
+      this.coinDigits = [];
+      for (let i = 0; i < 5; i++) {
+        this.coinDigits.push(this.add.image(24 + i * 5, 34, 'digits', 'd0').setOrigin(0).setScrollFactor(0).setDepth(100));
+      }
+      this.updateHud();
+    }
+
+    updateHud(bumpCoins) {
+      this.hud.forEach((img, i) => img.setFrame(i < this.player.hp ? 'full' : 'empty'));
+      const str = String(AK.save.coins);
+      this.coinDigits.forEach((img, i) => {
+        img.setVisible(i < str.length);
+        if (i < str.length) img.setFrame('d' + str[i]);
+      });
+      if (bumpCoins) {
+        this.tweens.killTweensOf(this.coinIcon);
+        this.coinIcon.setScale(1);
+        this.tweens.add({ targets: this.coinIcon, scale: 1.5, duration: 80, yoyo: true });
+      }
+    }
+
+    // Can simgesi kırılırken kısa bir efekt
+    hudLoseHp() {
+      const img = this.hud[this.player.hp];
+      if (!img) return;
+      img.setFrame('full');
+      this.tweens.add({
+        targets: img, x: img.x + 2, duration: 40, yoyo: true, repeat: 3,
+        onComplete: () => { img.x = 12 + this.hud.indexOf(img) * 14; img.setFrame('empty'); },
+      });
     }
 
     onResize(gameSize) {
@@ -128,9 +175,72 @@
       this.vignette.setDisplaySize(width, height);
     }
 
+    // ---------- Yardımcılar ----------
+    isSolidAt(x, y) {
+      const tile = this.ground.getTileAtWorldXY(x, y);
+      return !!tile && tile.index !== -1;
+    }
+
+    spawnCoins(x, y, n) {
+      for (let i = 0; i < n; i++) this.coins.add(new AK.Coin(this, x, y));
+    }
+
+    collectCoin(c) {
+      if (this.time.now < c.collectableAt || !c.active) return;
+      this.fx.coinSparkle(c.x, c.y);
+      c.destroy();
+      AK.save.coins++;
+      AK.saveGame();
+      this.updateHud(true);
+    }
+
     // ---------- Savaş ----------
+    onEnemyContact(e) {
+      if (e.dead) return;
+      const p = this.player;
+      const res = p.hurt(e.x);
+      if (!res) return;
+      if (res === 'blocked') {
+        e.bounceOff(-Math.sign(p.x - e.x) || p.facing);
+        this.fx.blockSparks(p.x + p.facing * 9, p.y - 14);
+        this.cameras.main.shake(70, 0.003);
+        return;
+      }
+      this.onPlayerDamaged(res);
+    }
+
+    onPlayerDamaged(res) {
+      this.hudLoseHp();
+      this.cameras.main.shake(160, 0.01);
+      this.cameras.main.flash(120, 120, 20, 30);
+      this.fx.hitSparks(this.player.x, this.player.y - 14);
+      this.hitStop(110);
+      if (res === 'dead') this.playerDied();
+    }
+
+    playerDied() {
+      const p = this.player;
+      this.time.delayedCall(500, () => {
+        p.setTintFill(0xffffff);
+        this.fx.enemyBurst(p.x, p.y - 14, [0xf2c75a, 0x7d8dad, 0x9c3247]);
+        p.setVisible(false);
+      });
+      this.time.delayedCall(1100, () => this.cameras.main.fadeOut(700, 5, 7, 13));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart());
+    }
+
     onSwordSwing(rect) {
       let hit = false;
+      const p = this.player;
+      for (const e of this.enemies.getChildren().slice()) {
+        if (e.dead) continue;
+        const r = e.hitRect();
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
+        hit = true;
+        e.takeHit(p.facing);
+        this.fx.hitSparks(Phaser.Math.Clamp(p.x + p.facing * 16, r.left, r.right), Phaser.Math.Clamp(p.y - 16, r.top, r.bottom));
+      }
+      if (hit) p.recoil(-p.facing * AK.TUNING.hitRecoil, 110);
       for (const d of this.dummies) {
         const r = d.getHitRect();
         if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
@@ -160,14 +270,24 @@
       if (this.physics.world.isPaused) return;
       const p = this.player;
       p.update(time, AK.input);
+      for (const e of this.enemies.getChildren().slice()) e.update(time, p);
 
       if (p.onGround && p.state !== 'dash') { this.safePos.x = p.x; this.safePos.y = p.y; }
 
       // çukura düşünce son güvenli noktaya dön
-      if (p.y > this.worldH + 60) {
+      // (düşmek bir cana mal olur)
+      if (p.y > this.worldH + 60 && !p.dead) {
         p.setPosition(this.safePos.x - p.facing * 20, this.safePos.y - 4);
         p.body.setVelocity(0, 0);
-        this.cameras.main.flash(250, 20, 25, 45);
+        p.hp = Math.max(0, p.hp - 1);
+        p.invulnUntil = time + AK.TUNING.invulnMs;
+        if (p.hp === 0) {
+          p.dead = true;
+          this.onPlayerDamaged('dead');
+        } else {
+          this.hudLoseHp();
+          this.cameras.main.flash(250, 20, 25, 45);
+        }
       }
 
       // kamera bakış yönüne doğru biraz öne kayar

@@ -72,6 +72,39 @@
       this.sparks.explode(12, x, y);
     }
 
+    // düşman ölünce renkli parça patlaması
+    enemyBurst(x, y, tints) {
+      const em = this.scene.add.particles(x, y, 'dot', {
+        lifespan: { min: 300, max: 700 },
+        speed: { min: 40, max: 160 },
+        scale: { start: 1.6, end: 0 },
+        gravityY: 250,
+        tint: tints,
+        emitting: false,
+      }).setDepth(12);
+      em.explode(22);
+      this.sparks.explode(10, x, y);
+      this.scene.time.delayedCall(900, () => em.destroy());
+    }
+
+    // kalkana çarpma: mavi-beyaz kıvılcım
+    blockSparks(x, y) {
+      const em = this.scene.add.particles(x, y, 'spark', {
+        lifespan: { min: 120, max: 260 },
+        speed: { min: 80, max: 200 },
+        scale: { start: 1, end: 0 },
+        tint: [0x9fd7ff, 0xffffff],
+        blendMode: 'ADD',
+        emitting: false,
+      }).setDepth(12);
+      em.explode(10);
+      this.scene.time.delayedCall(400, () => em.destroy());
+    }
+
+    coinSparkle(x, y) {
+      this.sparks.explode(4, x, y);
+    }
+
     straw(x, y, dir) {
       (dir > 0 ? this.strawRight : this.strawLeft).explode(10, x, y);
     }

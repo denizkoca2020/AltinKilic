@@ -10,6 +10,7 @@
     create() {
       AK.buildWorldTextures(this);
       AK.buildWarriorTextures(this);
+      AK.buildEnemyTextures(this);
       this.scene.start('Game');
     }
   }

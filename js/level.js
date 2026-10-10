@@ -33,10 +33,21 @@
   // Dünya nesneleri (karo koordinatları)
   const OBJECTS = {
     player: { x: 5, y: 18 },
+    // antrenman kuklaları başlangıç bölgesinde
     dummies: [
-      { x: 52, y: 18 },
-      { x: 68, y: 9 },
-      { x: 97, y: 15 },
+      { x: 16, y: 18 },
+      { x: 23, y: 9 },
+    ],
+    // düşmanlar: y = durduğu karo satırı (uçanlar için havadaki konum)
+    enemies: [
+      { type: 'crawler', x: 31, y: 16 },
+      { type: 'crawler', x: 52, y: 15 },
+      { type: 'flyer', x: 58, y: 9 },
+      { type: 'husk', x: 67, y: 9 },
+      { type: 'crawler', x: 80, y: 18 },
+      { type: 'flyer', x: 88, y: 8 },
+      { type: 'husk', x: 100, y: 15 },
+      { type: 'flyer', x: 104, y: 5 },
     ],
     lanterns: [
       { x: 12, y: 2, len: 3 },

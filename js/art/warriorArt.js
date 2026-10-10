@@ -203,6 +203,8 @@
     shield: { back: [-3, 0], front: [2, 0], b: 1, cape: { len: 12, spread: 3, sway: 0 }, arm: 'shield', plume: 0 },
 
     dash: { back: [-5, 2], front: [2, 3], b: 1, lean: 2, cape: { horizontal: true, len: 13 }, arm: 'dash', plume: 3 },
+
+    hurt: { back: [-3, 2], front: [3, 1], b: 0, lean: -2, cape: { len: 10, spread: 5, sway: 3, up: 0.3 }, arm: 'raise', plume: 3 },
   };
 
   AK.buildWarriorTextures = function (scene) {
@@ -217,6 +219,7 @@
     scene.anims.create({ key: 'w-attack', frames: f(['atk0', 'atk1', 'atk2', 'atk2']), frameRate: 16 });
     scene.anims.create({ key: 'w-shield', frames: f(['shield']), frameRate: 1 });
     scene.anims.create({ key: 'w-dash', frames: f(['dash']), frameRate: 1 });
+    scene.anims.create({ key: 'w-hurt', frames: f(['hurt']), frameRate: 1 });
   };
 
   AK.WARRIOR_FRAME = { w: FW, h: FH };
