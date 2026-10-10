@@ -56,6 +56,7 @@
       this.prevVy = 0;
       this.slash = null;
       this.hp = TUNING.maxHp;
+      this.damage = 1; // kılıç gücü (dükkândan geliştirilebilir)
       this.dead = false;
       this.hurtEndAt = 0;
       this.invulnUntil = 0;

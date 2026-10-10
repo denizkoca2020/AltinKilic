@@ -9,6 +9,8 @@
     if (Number.isFinite(data.coins)) AK.save.coins = Math.max(0, Math.min(99999, data.coins));
     AK.save.muted = !!data.muted;
     if (data.checkpoint && typeof data.checkpoint.level === 'string') AK.save.checkpoint = data.checkpoint;
+    AK.save.bossKing = !!data.bossKing; // Kabuk Kral yenildi mi
+    AK.save.shrineTaken = !!data.shrineTaken;
   } catch (_) { /* depolama kapalı */ }
 
   AK.saveGame = function () {

@@ -151,3 +151,145 @@
     AK.addFrames(scene, 'digits', 5, 7, DIGITS.map((_, i) => ({ name: 'd' + i, grid: digit(i) })));
   };
 })();
+
+// ---------- Kabuk Kral (boss) 64x56 + şok dalgası + düşen kaya + sunak ----------
+(function () {
+  const AK = window.AK;
+  const P = AK.PAL;
+  const C = AK.ENEMY_COLORS;
+  const K = {
+    cape: '#3d1f4a', capeMid: '#5a2d6b', capeLight: '#7a3f8e',
+    iron: '#4f5464', ironLight: '#9aa0b4', ironDark: '#30333f',
+    eye: '#ff7a3c', eyeHot: '#ffd36e', gem: '#d0304a',
+  };
+
+  function greatsword(g, hx, hy, tx, ty) {
+    const dx = tx - hx, dy = ty - hy, m = Math.hypot(dx, dy);
+    const ux = dx / m, uy = dy / m, px = -uy, py = ux;
+    // kabza + siper
+    g.line(hx - ux * 4, hy - uy * 4, hx, hy, P.wood, 2);
+    for (let k = -3; k <= 3; k++) g.set(hx + ux * 2 + px * k, hy + uy * 2 + py * k, P.goldMid);
+    // namlu
+    for (let i = 3; i <= m; i++) {
+      const x = hx + ux * i, y = hy + uy * i;
+      g.set(x + px, y + py, K.ironDark);
+      g.set(x, y, K.iron);
+      g.set(x - px, y - py, K.ironLight);
+    }
+    g.rect(hx - 1, hy - 1, 3, 3, C.huskDark); // el
+  }
+
+  function king(pose) {
+    const g = new AK.PixelGrid(64, 56);
+    const lean = { charge: 4, windup: -2, slam: 2 }[pose] || 0;
+    const bob = pose === 'idle1' ? 1 : 0;
+    const X = (x) => x + lean;
+    const legs = {
+      idle0: [[-3, 0], [3, 0]], idle1: [[-3, 0], [3, 0]], windup: [[-5, 0], [4, 0]],
+      charge: [[-8, 1], [6, 2]], leap: [[-4, 6], [4, 5]], slam: [[-7, 0], [7, 0]],
+    }[pose];
+    const capeUp = pose === 'leap' ? 10 : 0;
+
+    // pelerin
+    for (let r = 0; r < 30 - capeUp; r++) {
+      const y = 20 + bob + r;
+      const xl = X(18) - Math.round(r * 0.45) - (pose === 'charge' ? Math.round(r * 0.4) : 0);
+      for (let x = xl; x <= X(26); x++) {
+        if (r === 29 - capeUp && (x + r) % 2) continue;
+        g.set(x, y, x < xl + 2 ? K.cape : x > X(23) ? K.capeLight : K.capeMid);
+      }
+    }
+    // bacaklar
+    [[22, legs[0]], [30, legs[1]]].forEach(([hx, [dx, lift]], i) => {
+      g.line(hx, 40, hx + dx, 52 - lift, i ? C.huskDark : '#3f372e', 4);
+      g.rect(hx + dx - 1, 53 - lift, 7, 3, P.outline);
+    });
+    // kambur kabuk gövde
+    g.ellipse(X(26), 31 + bob, 14, 12, C.husk);
+    g.ellipse(X(24), 29 + bob, 9, 7, C.huskLight);
+    g.ellipse(X(26), 33 + bob, 12, 8, C.husk);
+    g.rect(X(13), 30 + bob, 3, 10, C.huskDark);
+    g.line(X(14), 38 + bob, X(38), 38 + bob, C.huskDark, 1);
+    g.line(X(16), 24 + bob, X(22), 22 + bob, '#b0a28a', 1);
+    // maske kafa
+    g.ellipse(X(39), 19 + bob, 8, 8, C.mask);
+    g.rect(X(33), 23 + bob, 6, 3, C.maskShade);
+    g.rect(X(37), 16 + bob, 2, 4, P.outline);
+    g.rect(X(42), 16 + bob, 2, 4, P.outline);
+    g.set(X(37), 17 + bob, K.eye);
+    g.set(X(42), 17 + bob, K.eye);
+    g.set(X(43), 16 + bob, K.eyeHot);
+    // taç
+    g.rect(X(32), 9 + bob, 14, 3, P.goldMid);
+    g.rect(X(32), 9 + bob, 14, 1, P.goldLight);
+    [33, 38, 43].forEach((x, i) => {
+      g.rect(X(x), 5 + bob + (i === 1 ? -2 : 0), 2, 4 + (i === 1 ? 2 : 0), P.goldLight);
+      g.set(X(x), 5 + bob + (i === 1 ? -2 : 0), P.goldShine);
+    });
+    g.set(X(36), 10 + bob, K.gem);
+    g.set(X(41), 10 + bob, K.gem);
+    // kılıç kolu
+    const S = {
+      idle0: [[44, 33], [56, 52]], idle1: [[44, 34], [56, 53]], windup: [[33, 14], [12, 2]],
+      charge: [[46, 30], [63, 29]], leap: [[41, 15], [46, 0]], slam: [[45, 36], [60, 55]],
+    }[pose];
+    const [[hx, hy], [tx, ty]] = S;
+    g.line(X(34), 28 + bob, X(hx), hy + bob, C.huskDark, 3);
+    greatsword(g, X(hx), hy + bob, Math.min(63, X(tx)), ty + bob);
+    g.outline(P.outline);
+    return g;
+  }
+
+  // yere yayılan şok dalgası 18x14
+  function shock(i) {
+    const g = new AK.PixelGrid(18, 14);
+    for (let x = 0; x < 18; x++) {
+      const h = Math.round(4 + 8 * Math.sin((x / 17) * Math.PI) * (i ? 0.85 : 1));
+      for (let y = 14 - h; y < 14; y++) {
+        const k = (y - (14 - h)) / h;
+        g.set(x, y, k < 0.25 ? '#fff2b0' : k < 0.6 ? '#f2c75a' : '#c8572a');
+      }
+    }
+    return g;
+  }
+
+  // düşen kaya 10x10
+  function rock() {
+    const g = new AK.PixelGrid(10, 10);
+    g.ellipse(5, 5, 4, 4, P.stoneMid);
+    g.rect(3, 2, 3, 2, P.stoneLight);
+    g.set(6, 6, P.stoneDark);
+    g.set(3, 6, P.stoneDark);
+    g.outline(P.outline);
+    return g;
+  }
+
+  // altın sunak 28x30 (boss sonrası ödül)
+  function shrine() {
+    const g = new AK.PixelGrid(28, 30);
+    g.rect(4, 22, 20, 8, P.stoneMid);
+    g.rect(4, 22, 20, 1, P.stoneRim);
+    g.rect(7, 12, 14, 10, P.stoneLight);
+    g.rect(7, 12, 14, 1, P.stoneRim);
+    g.rect(2, 10, 24, 2, P.goldMid);
+    g.rect(2, 10, 24, 1, P.goldLight);
+    // üstünde süzülen altın kılıç
+    g.rect(13, 0, 2, 8, P.goldLight);
+    g.set(13, 0, P.goldShine);
+    g.rect(10, 6, 8, 1, P.goldMid);
+    g.rect(13, 7, 2, 2, P.goldDark);
+    g.outline(P.outline);
+    return g;
+  }
+
+  const prev = AK.buildEnemyTextures;
+  AK.buildEnemyTextures = function (scene) {
+    prev(scene);
+    AK.addFrames(scene, 'king', 64, 56, ['idle0', 'idle1', 'windup', 'charge', 'leap', 'slam'].map((n) => ({ name: n, grid: king(n) })));
+    scene.anims.create({ key: 'king-idle', frames: [{ key: 'king', frame: 'idle0' }, { key: 'king', frame: 'idle1' }], frameRate: 3, repeat: -1 });
+    AK.addFrames(scene, 'shock', 18, 14, [{ name: 'a', grid: shock(0) }, { name: 'b', grid: shock(1) }]);
+    scene.anims.create({ key: 'shock', frames: [{ key: 'shock', frame: 'a' }, { key: 'shock', frame: 'b' }], frameRate: 14, repeat: -1 });
+    AK.addGrid(scene, 'rock', rock());
+    AK.addGrid(scene, 'shrine', shrine());
+  };
+})();

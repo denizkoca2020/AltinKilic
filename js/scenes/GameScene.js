@@ -1,4 +1,5 @@
 // Ana oyun sahnesi: bölüm, paralaks arka plan, ışıklar, savaşçı, kamera ve HUD.
+// Sahne her bölüm geçişinde / ölümde { level, spawn, respawn } verisiyle yeniden başlatılır.
 (function () {
   const AK = (window.AK = window.AK || {});
   const T = () => AK.TILE;
@@ -10,7 +11,18 @@
 
     create(data) {
       data = data || {};
-      const L = AK.LEVEL;
+      // Hangi bölüm? Kapıdan geçildiyse hedef bölüm; ölümde ya da ilk açılışta son kayıt noktası
+      const cp = AK.save.checkpoint;
+      const respawn = !!data.respawn || !data.level;
+      const levelId = data.level || (respawn && cp && AK.LEVELS[cp.level] ? cp.level : 'cave');
+      const L = (this.level = AK.LEVELS[levelId]);
+      // sahne nesnesi yeniden kullanılır: önceki bölümden kalanları sıfırla
+      this.leaving = false;
+      this.boss = null;
+      this.hazards = null;
+      this.gates = null;
+      this.bossBarBg = null;
+      this.bossBarFill = null;
       const t = T();
       const worldW = L.W * t;
       const worldH = L.H * t;
@@ -23,7 +35,7 @@
 
       // ---- Zemin (tilemap) ----
       const map = this.make.tilemap({ data: tiles, tileWidth: t, tileHeight: t });
-      const tileset = map.addTilesetImage('tiles', 'tiles', t, t, 0, 0);
+      const tileset = map.addTilesetImage('tiles', 'tiles-' + L.theme, t, t, 0, 0);
       this.ground = map.createLayer(0, tileset, 0, 0).setDepth(2);
       this.ground.setCollisionByExclusion([-1]);
 
@@ -34,7 +46,7 @@
       this.decorate(grid);
 
       // ---- Kuklalar ----
-      this.dummies = L.OBJECTS.dummies.map((d) => new AK.Dummy(this, d.x * t + t / 2, (d.y + 1) * t));
+      this.dummies = (L.OBJECTS.dummies || []).map((d) => new AK.Dummy(this, d.x * t + t / 2, (d.y + 1) * t));
 
       // ---- Dinlenme bankları ----
       this.interactables = [];
@@ -47,12 +59,21 @@
         return bench;
       });
 
+      // ---- Kapılar (bölümler arası geçiş) ----
+      for (const d of L.OBJECTS.doors || []) {
+        const dx = d.x * t + t / 2, dy = (d.y + 1) * t;
+        this.add.image(dx, dy, 'door').setOrigin(0.5, 1).setDepth(1);
+        this.add.image(dx, dy - 24, 'glow').setDepth(0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.25).setScale(1.2);
+        this.interactables.push({ x: dx, y: dy, w: 30, label: 'GİR', use: () => this.enterDoor(d) });
+      }
+
       // ---- Savaşçı ----
-      // Ölünce son oturulan bankta, yoksa bölüm başında doğar
-      const cp = AK.save.checkpoint;
-      const respawnBench = data.respawn && cp && cp.level === 'cave' ? this.benches[cp.bench] : null;
-      const ps = L.OBJECTS.player;
+      // Kapıdan gelindiyse kapının yanında; ölünce/ilk açılışta son oturulan bankta; yoksa bölüm başında doğar
+      const spawn = data.spawn && L.OBJECTS.spawns ? L.OBJECTS.spawns[data.spawn] : null;
+      const respawnBench = !spawn && respawn && cp && cp.level === levelId ? this.benches[cp.bench] : null;
+      const ps = spawn || L.OBJECTS.player;
       this.player = new AK.Warrior(this, ps.x * t + t / 2, (ps.y + 1) * t);
+      if (spawn && spawn.facing) this.player.facing = spawn.facing;
       if (respawnBench) {
         this.player.setPosition(respawnBench.x, respawnBench.y);
         this.player.sit(respawnBench.x, respawnBench.y);
@@ -89,7 +110,11 @@
       cam.fadeIn(600, 5, 7, 13);
 
       this.fx.ambient(worldW, worldH);
-      AK.audio.playMusic('cave');
+      AK.audio.playMusic(L.music);
+      if (data.level || !data.respawn) this.time.delayedCall(500, () => AK.toast(L.name, 2600));
+
+      // ---- Boss arenası (varsa) ----
+      if (L.OBJECTS.boss) this.setupBoss(L.OBJECTS.boss, L.OBJECTS.shrine);
       this.createOverlay();
 
       this.scale.on('resize', this.onResize, this);
@@ -103,25 +128,32 @@
     // ---------- Arka plan ----------
     createBackground() {
       const { width, height } = this.scale.gameSize;
-      this.bgFar = this.add.tileSprite(0, 0, width, height, 'bg-far').setOrigin(0).setScrollFactor(0).setDepth(-20);
-      this.bgMid = this.add.tileSprite(0, 0, width, height, 'bg-mid').setOrigin(0).setScrollFactor(0).setDepth(-15);
+      const th = this.level.theme;
+      this.bgFar = this.add.tileSprite(0, 0, width, height, 'bg-far-' + th).setOrigin(0).setScrollFactor(0).setDepth(-20);
+      this.bgMid = this.add.tileSprite(0, 0, width, height, 'bg-mid-' + th).setOrigin(0).setScrollFactor(0).setDepth(-15);
 
       // tavandan süzülen ışık huzmeleri
-      for (const bx of AK.LEVEL.OBJECTS.beams) {
+      for (const bx of this.level.OBJECTS.beams || []) {
         const b = this.add.image(bx * T(), 24, 'beam').setOrigin(0.5, 0).setScrollFactor(0.85, 1)
           .setDepth(-10).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.1);
         this.tweens.add({ targets: b, alpha: 0.05, duration: 2600 + Math.random() * 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
     }
 
-    // ---------- Süslemeler: fenerler, çimler ----------
+    // ---------- Süslemeler: fenerler, çimler, sancaklar ----------
     decorate(grid) {
       const t = T();
-      const L = AK.LEVEL;
+      const L = this.level;
       const r = AK.rng(1234);
 
-      // yüzeylerdeki yosun / çim öbekleri
-      for (let y = 1; y < L.H; y++)
+      // kraliyet sancakları
+      for (const bx of L.OBJECTS.banners || []) {
+        const b = this.add.image(bx * t + t / 2, 2 * t, 'banner').setOrigin(0.5, 0).setDepth(-1);
+        this.tweens.add({ targets: b, scaleX: 0.94, duration: 1800 + r() * 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+
+      // yüzeylerdeki yosun / çim öbekleri (yalnızca mağarada)
+      if (L.theme === 'cave') for (let y = 1; y < L.H; y++)
         for (let x = 0; x < L.W; x++) {
           if (!grid[y][x] || grid[y - 1][x] || r() > 0.4) continue;
           this.add.image(x * t + t / 2, y * t + 1, 'grass', 'g' + Math.floor(r() * 4)).setOrigin(0.5, 1).setDepth(3);
@@ -147,7 +179,7 @@
     // ---------- Ekran üstü katmanlar: sis, vinyet, HUD ----------
     createOverlay() {
       const { width, height } = this.scale.gameSize;
-      this.fog = this.add.tileSprite(0, height - 80, width, 90, 'fog').setOrigin(0).setScrollFactor(0).setDepth(13).setAlpha(0.35);
+      this.fog = this.add.tileSprite(0, height - 80, width, 90, 'fog-' + this.level.theme).setOrigin(0).setScrollFactor(0).setDepth(13).setAlpha(0.35);
       this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(90).setDisplaySize(width, height);
 
       // can (altın miğferler)
@@ -199,6 +231,7 @@
       this.bgMid.tilePositionY = 270 - height;
       this.fog.setSize(width, 90).setY(height - 80);
       this.vignette.setDisplaySize(width, height);
+      if (this.layoutBossBar) this.layoutBossBar();
     }
 
     // ---------- Yardımcılar ----------
@@ -228,7 +261,7 @@
       const res = p.hurt(e.x);
       if (!res) return;
       if (res === 'blocked') {
-        e.bounceOff(-Math.sign(p.x - e.x) || p.facing);
+        if (e.bounceOff) e.bounceOff(-Math.sign(p.x - e.x) || p.facing);
         this.fx.blockSparks(p.x + p.facing * 9, p.y - 14);
         AK.sfx('block');
         this.cameras.main.shake(70, 0.003);
@@ -266,9 +299,20 @@
         const r = e.hitRect();
         if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
         hit = true;
-        e.takeHit(p.facing);
+        e.takeHit(p.facing, p.damage);
         if (!e.dead) AK.sfx('hit');
         this.fx.hitSparks(Phaser.Math.Clamp(p.x + p.facing * 16, r.left, r.right), Phaser.Math.Clamp(p.y - 16, r.top, r.bottom));
+      }
+      const boss = this.boss;
+      if (boss && !boss.dead && boss.mode !== 'dormant') {
+        const r = boss.hitRect();
+        if (Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) {
+          hit = true;
+          boss.takeHit(p.damage);
+          AK.sfx('hit');
+          this.fx.hitSparks(Phaser.Math.Clamp(p.x + p.facing * 16, r.left, r.right), Phaser.Math.Clamp(p.y - 16, r.top, r.bottom));
+          this.updateBossBar();
+        }
       }
       if (hit) p.recoil(-p.facing * AK.TUNING.hitRecoil, 110);
       for (const d of this.dummies) {
@@ -304,7 +348,7 @@
       p.hp = AK.TUNING.maxHp;
       p.invulnUntil = 0;
       this.updateHud();
-      AK.save.checkpoint = { level: 'cave', bench: bench.index };
+      AK.save.checkpoint = { level: this.level.id, bench: bench.index };
       AK.saveGame();
       AK.sfx('bench');
       AK.toast('DİNLENDİN · CANLAR DOLDU · KAYIT ALINDI');
@@ -313,11 +357,25 @@
       this.fx.hitSparks(bench.x, bench.y - 12);
     }
 
+    // ---------- Bölüm geçişi ----------
+    enterDoor(door) {
+      if (this.leaving) return;
+      this.leaving = true;
+      const p = this.player;
+      p.state = 'hurt'; // kontrolü kilitle
+      p.hurtEndAt = Infinity;
+      p.body.setVelocity(0, 0);
+      AK.sfx('door');
+      AK.setInteract(null);
+      this.cameras.main.fadeOut(600, 5, 7, 13);
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart({ level: door.to, spawn: door.spawn }));
+    }
+
     // Yakındaki etkileşim noktasını bul, oku ve tuşu göster
     updateInteract() {
       const p = this.player;
       let best = null;
-      if (!p.dead && p.state !== 'sit' && p.state !== 'dash' && p.onGround) {
+      if (!p.dead && !this.leaving && p.state !== 'sit' && p.state !== 'dash' && p.onGround) {
         for (const it of this.interactables) {
           if (Math.abs(p.x - it.x) < it.w / 2 && Math.abs(p.y - it.y) < 20) { best = it; break; }
         }
@@ -337,6 +395,7 @@
       p.update(time, AK.input);
       this.updateInteract();
       for (const e of this.enemies.getChildren().slice()) e.update(time, p);
+      if (this.boss || this.hazards) this.updateBoss(time);
 
       if (p.onGround && p.state !== 'dash') { this.safePos.x = p.x; this.safePos.y = p.y; }
 

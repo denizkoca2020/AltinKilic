@@ -9,58 +9,81 @@
   AK.TILE_VARIANTS = 3;
   AK.TILE_DEEP_BASE = 16 * AK.TILE_VARIANTS; // derin iç karoların ilk indeksi
 
+  // ---------- Bölüm temaları ----------
+  AK.THEMES = {
+    cave: {
+      tile: { deep: P.stoneDeep, dark: P.stoneDark, mid: P.stoneMid, light: P.stoneLight, rim: P.stoneRim, moss: P.moss, mossLight: P.mossLight },
+      bg: {
+        sky: ['#070b16', '#142039', '#0c1322'],
+        spireFar: ['#17233d', '#1f2e4d'], spireNear: ['#111a2e', '#1a2640'], stalac: '#080c18',
+        midCol: '#0b111f', midEdge: '#152038', midHole: '#060912', roots: '#0a0f1c',
+      },
+      fog: '120,150,200',
+    },
+    // Altın Salon: kumtaşı, altın tozu, sıcak ışık
+    hall: {
+      tile: { deep: '#1c130e', dark: '#2b1d14', mid: '#45301f', light: '#664830', rim: '#a8834f', moss: '#b07a22', mossLight: '#f2c75a' },
+      bg: {
+        sky: ['#0e0806', '#2c1a10', '#140c08'],
+        spireFar: ['#2a1a12', '#3a2618'], spireNear: ['#20140d', '#30200f'], stalac: '#0c0604',
+        midCol: '#150c07', midEdge: '#2c1a0e', midHole: '#5a3a14', roots: '#120a06',
+      },
+      fog: '220,170,110',
+    },
+  };
+
   // ---------- Zemin karoları ----------
   // Maske bitleri: 1=üst boş, 2=sağ boş, 4=alt boş, 8=sol boş
-  function drawTile(mask, variant, deep) {
+  function drawTile(mask, variant, deep, S) {
     const g = new AK.PixelGrid(T, T);
     const r = AK.rng(1000 + mask * 7 + variant * 131 + (deep ? 977 : 0));
 
     if (deep) {
-      g.rect(0, 0, T, T, P.stoneDeep);
-      for (let i = 0; i < 6; i++) g.set(Math.floor(r() * T), Math.floor(r() * T), P.stoneDark);
+      g.rect(0, 0, T, T, S.deep);
+      for (let i = 0; i < 6; i++) g.set(Math.floor(r() * T), Math.floor(r() * T), S.dark);
       return g;
     }
 
     // derz rengi
-    g.rect(0, 0, T, T, P.stoneDeep);
+    g.rect(0, 0, T, T, S.deep);
     // iki sıra kaba taş blok
     const rows = [[0, 8], [8, 8]];
     rows.forEach(([y0, h], ri) => {
       let x = ri % 2 === 0 ? -Math.floor(r() * 4) : -4 - Math.floor(r() * 3);
       while (x < T) {
         const w = 6 + Math.floor(r() * 4);
-        const tone = r() < 0.3 ? P.stoneDark : P.stoneMid;
+        const tone = r() < 0.3 ? S.dark : S.mid;
         g.rect(x + 1, y0 + 1, w - 1, h - 1, tone);
-        g.rect(x + 1, y0 + 1, w - 2, 1, P.stoneLight); // üst ışık
-        g.rect(x + 1, y0 + 1, 1, h - 2, tone === P.stoneMid ? P.stoneLight : P.stoneMid);
-        g.rect(x + 2, y0 + h - 1, w - 2, 1, P.stoneDark); // alt gölge
-        if (r() < 0.5) g.set(x + 2 + Math.floor(r() * (w - 3)), y0 + 3 + Math.floor(r() * 3), P.stoneDeep); // çatlak
+        g.rect(x + 1, y0 + 1, w - 2, 1, S.light); // üst ışık
+        g.rect(x + 1, y0 + 1, 1, h - 2, tone === S.mid ? S.light : S.mid);
+        g.rect(x + 2, y0 + h - 1, w - 2, 1, S.dark); // alt gölge
+        if (r() < 0.5) g.set(x + 2 + Math.floor(r() * (w - 3)), y0 + 3 + Math.floor(r() * 3), S.deep); // çatlak
         x += w;
       }
     });
 
     const up = mask & 1, right = mask & 2, down = mask & 4, left = mask & 8;
     if (up) {
-      g.rect(0, 0, T, 1, P.stoneRim);
-      g.rect(0, 1, T, 1, P.stoneLight);
+      g.rect(0, 0, T, 1, S.rim);
+      g.rect(0, 1, T, 1, S.light);
       // yosun
       for (let x = 0; x < T; x++) {
-        if (r() < 0.55) g.set(x, 0, r() < 0.4 ? P.mossLight : P.moss);
-        if (r() < 0.25) g.set(x, 1, P.moss);
-        if (r() < 0.1) g.set(x, 2, P.moss);
+        if (r() < 0.55) g.set(x, 0, r() < 0.4 ? S.mossLight : S.moss);
+        if (r() < 0.25) g.set(x, 1, S.moss);
+        if (r() < 0.1) g.set(x, 2, S.moss);
       }
     }
     if (down) {
       g.rect(0, T - 1, T, 1, P.outline);
-      g.rect(0, T - 2, T, 1, P.stoneDeep);
+      g.rect(0, T - 2, T, 1, S.deep);
     }
     if (left) {
       g.rect(0, 0, 1, T, P.outline);
-      g.rect(1, up ? 2 : 0, 1, T - (up ? 2 : 0), P.stoneDark);
+      g.rect(1, up ? 2 : 0, 1, T - (up ? 2 : 0), S.dark);
     }
     if (right) {
       g.rect(T - 1, 0, 1, T, P.outline);
-      g.rect(T - 2, up ? 2 : 0, 1, T - (up ? 2 : 0), P.stoneDeep);
+      g.rect(T - 2, up ? 2 : 0, 1, T - (up ? 2 : 0), S.deep);
     }
     // yuvarlatılmış köşeler
     if (up && left) { g.px[0] = null; g.set(1, 0, P.outline); g.set(0, 1, P.outline); }
@@ -73,13 +96,13 @@
     return g;
   }
 
-  function buildTileset(scene) {
+  function buildTileset(scene, key, S) {
     const count = AK.TILE_DEEP_BASE + AK.TILE_VARIANTS;
     const { canvas, ctx } = AK.makeCanvas(count * T, T);
     for (let m = 0; m < 16; m++)
-      for (let v = 0; v < AK.TILE_VARIANTS; v++) drawTile(m, v, false).drawTo(ctx, (m * AK.TILE_VARIANTS + v) * T, 0);
-    for (let v = 0; v < AK.TILE_VARIANTS; v++) drawTile(0, v, true).drawTo(ctx, (AK.TILE_DEEP_BASE + v) * T, 0);
-    scene.textures.addCanvas('tiles', canvas);
+      for (let v = 0; v < AK.TILE_VARIANTS; v++) drawTile(m, v, false, S).drawTo(ctx, (m * AK.TILE_VARIANTS + v) * T, 0);
+    for (let v = 0; v < AK.TILE_VARIANTS; v++) drawTile(0, v, true, S).drawTo(ctx, (AK.TILE_DEEP_BASE + v) * T, 0);
+    scene.textures.addCanvas(key, canvas);
   }
 
   // ---------- Arka planlar ----------
@@ -106,7 +129,7 @@
     }
   }
 
-  function buildBackgrounds(scene) {
+  function buildBackgrounds(scene, name, B, fogRgb) {
     const H = 270;
 
     // uzak katman: gökyüzü degradesi + uzak kuleler
@@ -114,23 +137,23 @@
       const W = 480;
       const { canvas, ctx } = AK.makeCanvas(W, H);
       const grd = ctx.createLinearGradient(0, 0, 0, H);
-      grd.addColorStop(0, '#070b16');
-      grd.addColorStop(0.45, '#142039');
-      grd.addColorStop(1, '#0c1322');
+      grd.addColorStop(0, B.sky[0]);
+      grd.addColorStop(0.45, B.sky[1]);
+      grd.addColorStop(1, B.sky[2]);
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, W, H);
       const r = AK.rng(42);
       // en uzak sis kuleleri
       for (let i = 0; i < 14; i++) {
         const x = Math.floor(r() * W), w = 8 + Math.floor(r() * 16), h = 90 + Math.floor(r() * 120);
-        wrapFill(ctx, W, (o) => spire(ctx, x + o, w, h, H, '#17233d', '#1f2e4d'));
+        wrapFill(ctx, W, (o) => spire(ctx, x + o, w, h, H, B.spireFar[0], B.spireFar[1]));
       }
       for (let i = 0; i < 10; i++) {
         const x = Math.floor(r() * W), w = 14 + Math.floor(r() * 22), h = 60 + Math.floor(r() * 100);
-        wrapFill(ctx, W, (o) => spire(ctx, x + o, w, h, H, '#111a2e', '#1a2640'));
+        wrapFill(ctx, W, (o) => spire(ctx, x + o, w, h, H, B.spireNear[0], B.spireNear[1]));
       }
       // tavandan sarkıtlar
-      ctx.fillStyle = '#080c18';
+      ctx.fillStyle = B.stalac;
       for (let i = 0; i < 26; i++) {
         const x = Math.floor(r() * W), w = 4 + Math.floor(r() * 10), h = 10 + Math.floor(r() * 50);
         wrapFill(ctx, W, (o) => {
@@ -140,7 +163,7 @@
           }
         });
       }
-      scene.textures.addCanvas('bg-far', canvas);
+      scene.textures.addCanvas('bg-far-' + name, canvas);
     }
 
     // orta katman: yakın kayalar, kemerler, sütunlar
@@ -148,7 +171,7 @@
       const W = 640;
       const { canvas, ctx } = AK.makeCanvas(W, H);
       const r = AK.rng(7);
-      const col = '#0b111f', edge = '#152038';
+      const col = B.midCol, edge = B.midEdge;
       for (let i = 0; i < 7; i++) {
         const x = Math.floor(r() * W), w = 18 + Math.floor(r() * 26), h = 120 + Math.floor(r() * 110);
         wrapFill(ctx, W, (o) => {
@@ -163,7 +186,7 @@
           ctx.fillRect(x + o - 3, H - h, w + 6, 1);
           // yuvarlak pencere/oyuk
           if (r() < 0.6) {
-            ctx.fillStyle = '#060912';
+            ctx.fillStyle = B.midHole;
             const cy = H - h + 18 + Math.floor(r() * 30);
             for (let y = -4; y <= 4; y++) {
               const ww = Math.round(Math.sqrt(16 - y * y) * 1.2);
@@ -179,14 +202,14 @@
         ctx.fillRect(x, H - h, 1, h);
       }
       // sarkan kökler
-      ctx.fillStyle = '#0a0f1c';
+      ctx.fillStyle = B.roots;
       for (let i = 0; i < 18; i++) {
         const x = Math.floor(r() * W), len = 20 + Math.floor(r() * 60);
         wrapFill(ctx, W, (o) => {
           for (let y = 0; y < len; y++) ctx.fillRect(x + o + Math.round(Math.sin(y / 6) * 2), y, 2, 1);
         });
       }
-      scene.textures.addCanvas('bg-mid', canvas);
+      scene.textures.addCanvas('bg-mid-' + name, canvas);
     }
 
     // sis
@@ -198,13 +221,13 @@
         const x = r() * W, y = 30 + r() * 50, rad = 20 + r() * 30;
         wrapFill(ctx, W, (o) => {
           const g = ctx.createRadialGradient(x + o, y, 0, x + o, y, rad);
-          g.addColorStop(0, 'rgba(120,150,200,0.35)');
-          g.addColorStop(1, 'rgba(120,150,200,0)');
+          g.addColorStop(0, `rgba(${fogRgb},0.35)`);
+          g.addColorStop(1, `rgba(${fogRgb},0)`);
           ctx.fillStyle = g;
           ctx.fillRect(x + o - rad, y - rad, rad * 2, rad * 2);
         });
       }
-      scene.textures.addCanvas('fog', canvas);
+      scene.textures.addCanvas('fog-' + name, canvas);
     }
 
     // kenar karartma (vinyet)
@@ -216,7 +239,7 @@
       g.addColorStop(1, 'rgba(2,3,8,0.75)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
-      scene.textures.addCanvas('vignette', canvas);
+      if (!scene.textures.exists('vignette')) scene.textures.addCanvas('vignette', canvas);
     }
 
     // tavandan süzülen ışık huzmesi
@@ -234,7 +257,7 @@
       ctx.lineTo(0, Hh);
       ctx.closePath();
       ctx.fill();
-      scene.textures.addCanvas('beam', canvas);
+      if (!scene.textures.exists('beam')) scene.textures.addCanvas('beam', canvas);
     }
   }
 
@@ -327,6 +350,73 @@
       });
       g.outline(P.outline);
       AK.addGrid(scene, 'bench', g);
+    }
+
+    // büyük taş kapı (kemerli, içi karanlık, altın işlemeli) 40x56
+    {
+      const g = new AK.PixelGrid(40, 56);
+      const st = P.stoneMid, stL = P.stoneLight, stD = P.stoneDark;
+      // sütunlar
+      g.rect(0, 12, 7, 44, st);
+      g.rect(33, 12, 7, 44, st);
+      g.rect(0, 12, 1, 44, stL);
+      g.rect(33, 12, 1, 44, stL);
+      g.rect(6, 12, 1, 44, stD);
+      g.rect(39, 12, 1, 44, stD);
+      for (let y = 18; y < 56; y += 8) { g.rect(0, y, 7, 1, stD); g.rect(33, y, 7, 1, stD); }
+      // kemer
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 40; x++) {
+          const d = Math.hypot((x - 19.5) / 20, (y - 16) / 16);
+          if (d <= 1 && d > 0.62) g.set(x, y, d > 0.92 ? stL : st);
+        }
+      // karanlık iç (hafif altın parıltılı)
+      for (let y = 4; y < 56; y++)
+        for (let x = 7; x < 33; x++) {
+          const inArch = y >= 16 || Math.hypot((x - 19.5) / 13, (y - 16) / 12) <= 1;
+          if (inArch) g.set(x, y, y > 44 ? '#120c0a' : '#07060b');
+        }
+      // kilit taşı + altın işleme
+      g.rect(17, 0, 6, 5, P.goldMid);
+      g.rect(18, 1, 4, 3, P.goldLight);
+      g.set(19, 2, P.goldShine);
+      g.rect(2, 26, 3, 3, P.goldMid);
+      g.rect(35, 26, 3, 3, P.goldMid);
+      g.outline(P.outline);
+      AK.addGrid(scene, 'door', g);
+    }
+
+    // demir parmaklık (boss arenası kapısı) 16x64
+    {
+      const g = new AK.PixelGrid(16, 64);
+      for (let x = 1; x < 16; x += 4) {
+        g.rect(x, 0, 2, 60, '#4a4f60');
+        g.rect(x, 0, 1, 60, '#7a8096');
+        g.rect(x, 60, 2, 3, '#4a4f60');
+        g.set(x, 63, '#7a8096');
+      }
+      for (let y = 6; y < 60; y += 14) { g.rect(0, y, 16, 2, '#3a3e4c'); g.rect(0, y, 16, 1, '#6a7086'); }
+      g.outline(P.outline);
+      AK.addGrid(scene, 'gate', g);
+    }
+
+    // kraliyet sancağı (Altın Salon süsü) 14x34
+    {
+      const g = new AK.PixelGrid(14, 34);
+      g.rect(0, 0, 14, 2, P.goldMid);
+      g.rect(0, 0, 14, 1, P.goldLight);
+      g.rect(2, 2, 10, 26, '#6e2135');
+      g.rect(2, 2, 1, 26, '#9c3247');
+      g.rect(11, 2, 1, 26, '#3f1424');
+      // sivri alt uç
+      for (let i = 0; i < 4; i++) { g.rect(2 + i, 28 + i, 5 - i, 1, '#6e2135'); g.rect(7, 28 + i, 5 - i, 1, '#6e2135'); }
+      // altın kılıç amblemi
+      g.rect(6, 7, 2, 13, P.goldLight);
+      g.rect(4, 17, 6, 1, P.goldMid);
+      g.rect(6, 19, 2, 3, P.goldDark);
+      g.set(6, 7, P.goldShine);
+      g.outline(P.outline);
+      AK.addGrid(scene, 'banner', g);
     }
 
     // etkileşim oku (bank / kapı / tüccar üstünde süzülür)
@@ -446,8 +536,10 @@
   }
 
   AK.buildWorldTextures = function (scene) {
-    buildTileset(scene);
-    buildBackgrounds(scene);
+    for (const [name, th] of Object.entries(AK.THEMES)) {
+      buildTileset(scene, 'tiles-' + name, th.tile);
+      buildBackgrounds(scene, name, th.bg, th.fog);
+    }
     buildProps(scene);
     buildEffects(scene);
   };

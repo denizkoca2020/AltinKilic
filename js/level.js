@@ -1,8 +1,9 @@
-// İlk bölüm: "Unutulmuş Mağara" - deneme / antrenman alanı.
-// Harita dikdörtgenlerle tanımlanır; karo görünümleri komşulara göre otomatik seçilir.
+// Bölümler. Her harita dikdörtgenlerle tanımlanır; karo görünümleri komşulara göre otomatik seçilir.
+// Koordinatlar karo cinsinden (1 karo = 16 piksel). Nesnelerde y = üstünde durduğu karo satırı.
 (function () {
   const AK = (window.AK = window.AK || {});
 
+  // ======================= 1. Unutulmuş Mağara =======================
   const W = 110;
   const H = 22;
 
@@ -64,18 +65,70 @@
       { x: 96, y: 2, len: 3 },
     ],
     beams: [16, 47, 80, 100],
+    // bölüm sonundaki büyük kapı -> Altın Salon
+    doors: [{ x: 105, y: 15, to: 'hall', spawn: 'fromCave' }],
+    spawns: { fromHall: { x: 102, y: 15, facing: -1 } },
   };
 
-  function buildGrid() {
+
+  // ======================= 2. Altın Salon =======================
+  const HALL_W = 100;
+  const HALL_SOLIDS = [
+    [0, 0, HALL_W - 1, 1], // tavan
+    [0, 0, 1, 21], // sol duvar
+    [HALL_W - 2, 0, HALL_W - 1, 21], // sağ duvar
+    [0, 19, 29, 21], // giriş zemini
+    [33, 19, HALL_W - 1, 21], // çukurdan sonrası (boss arenası dahil)
+    [22, 15, 25, 15], // koridor platformları
+    [35, 14, 39, 14],
+    [43, 11, 46, 11],
+    [40, 2, 41, 6], // sarkan sütun
+    [57, 14, 60, 14], // arena yan platformları
+    [76, 14, 79, 14],
+    [52, 2, 54, 3], // arena tavan süsleri
+    [83, 2, 85, 3],
+    [93, 17, 95, 18], // sunak kaidesi
+  ];
+  const HALL_OBJECTS = {
+    player: { x: 6, y: 18 },
+    spawns: { fromCave: { x: 6, y: 18, facing: 1 } },
+    doors: [{ x: 3, y: 18, to: 'cave', spawn: 'fromHall' }],
+    benches: [{ x: 11, y: 18 }],
+    merchant: { x: 17, y: 18 },
+    dummies: [],
+    enemies: [
+      { type: 'husk', x: 27, y: 18 },
+      { type: 'crawler', x: 37, y: 13 },
+      { type: 'flyer', x: 38, y: 8 },
+      { type: 'husk', x: 44, y: 10 },
+      { type: 'flyer', x: 47, y: 7 },
+    ],
+    // boss arenası: oyuncu gateL'yi geçince kapılar kapanır
+    boss: { x: 82, y: 18, gateL: 50, gateR: 89, trigger: 54 },
+    shrine: { x: 94, y: 16 },
+    lanterns: [
+      { x: 14, y: 2, len: 4 },
+      { x: 30, y: 2, len: 6 },
+      { x: 62, y: 2, len: 4 },
+      { x: 71, y: 2, len: 4 },
+      { x: 94, y: 2, len: 5 },
+    ],
+    banners: [8, 20, 34, 56, 66, 75, 86],
+    beams: [14, 60, 82],
+  };
+
+  // ======================= Ortak harita kurulumu =======================
+  function buildGrid(L) {
     const grid = [];
-    for (let y = 0; y < H; y++) grid.push(new Array(W).fill(0));
-    for (const [x0, y0, x1, y1] of SOLIDS)
+    for (let y = 0; y < L.H; y++) grid.push(new Array(L.W).fill(0));
+    for (const [x0, y0, x1, y1] of L.SOLIDS)
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) grid[y][x] = 1;
     return grid;
   }
 
   // Phaser tilemap'i için karo indeksleri (-1 = boş)
-  function tileIndices(grid) {
+  function tileIndices(L, grid) {
+    const { W, H } = L;
     const solid = (x, y) => (x < 0 || y < 0 || x >= W || y >= H ? 1 : grid[y][x]);
     const out = [];
     for (let y = 0; y < H; y++) {
@@ -99,13 +152,16 @@
     return out;
   }
 
-  AK.LEVEL = {
-    W,
-    H,
-    OBJECTS,
-    build() {
-      const grid = buildGrid();
-      return { grid, tiles: tileIndices(grid) };
-    },
+  function makeLevel(def) {
+    def.build = function () {
+      const grid = buildGrid(def);
+      return { grid, tiles: tileIndices(def, grid) };
+    };
+    return def;
+  }
+
+  AK.LEVELS = {
+    cave: makeLevel({ id: 'cave', name: 'UNUTULMUŞ MAĞARA', theme: 'cave', music: 'cave', W, H, SOLIDS, OBJECTS }),
+    hall: makeLevel({ id: 'hall', name: 'ALTIN SALON', theme: 'hall', music: 'cave', W: HALL_W, H: 22, SOLIDS: HALL_SOLIDS, OBJECTS: HALL_OBJECTS }),
   };
 })();

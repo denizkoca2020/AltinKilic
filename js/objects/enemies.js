@@ -30,9 +30,9 @@
     }
 
     // Kılıç darbesi: geri itilir, beyaz parlar; can biterse ölür
-    takeHit(dir) {
+    takeHit(dir, dmg = 1) {
       if (this.dead) return false;
-      this.hp--;
+      this.hp -= dmg;
       this.stunUntil = this.scene.time.now + 200;
       this.body.setVelocityX(dir * this.knock);
       if (!this.body.allowGravity) this.body.setVelocityY(-40);
@@ -209,9 +209,9 @@
       this.setFlipX(this.dir < 0);
     }
 
-    takeHit(dir) {
+    takeHit(dir, dmg) {
       // vurulunca hazırlığı / hücumu bozulur ve kısa bir süre tekrar saldıramaz
-      const r = super.takeHit(dir);
+      const r = super.takeHit(dir, dmg);
       if (r && !this.dead) {
         this.mode = 'patrol';
         this.nextAttack = this.scene.time.now + 700;
