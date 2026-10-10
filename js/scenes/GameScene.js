@@ -59,6 +59,15 @@
         return bench;
       });
 
+      // ---- Tüccar ----
+      const m = L.OBJECTS.merchant;
+      if (m) {
+        const mx = m.x * t + t / 2, my = (m.y + 1) * t;
+        this.add.image(mx, my - 14, 'glow').setDepth(3).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3).setScale(0.8);
+        this.add.sprite(mx, my, 'merchant', 'm0').setOrigin(0.5, 1).setDepth(4).setFlipX(true).play('merchant-idle');
+        this.interactables.push({ x: mx, y: my, w: 48, label: 'KONUŞ', use: () => AK.shop.open(this) });
+      }
+
       // ---- Kapılar (bölümler arası geçiş) ----
       for (const d of L.OBJECTS.doors || []) {
         const dx = d.x * t + t / 2, dy = (d.y + 1) * t;
@@ -182,9 +191,9 @@
       this.fog = this.add.tileSprite(0, height - 80, width, 90, 'fog-' + this.level.theme).setOrigin(0).setScrollFactor(0).setDepth(13).setAlpha(0.35);
       this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(90).setDisplaySize(width, height);
 
-      // can (altın miğferler)
+      // can (altın miğferler) - en fazla 7, görünür sayısı en yüksek cana göre
       this.hud = [];
-      for (let i = 0; i < AK.TUNING.maxHp; i++) {
+      for (let i = 0; i < 7; i++) {
         this.hud.push(this.add.image(12 + i * 14, 12, 'hp', 'full').setOrigin(0).setScrollFactor(0).setDepth(100));
       }
       // altın sayacı
@@ -197,7 +206,10 @@
     }
 
     updateHud(bumpCoins) {
-      this.hud.forEach((img, i) => img.setFrame(i < this.player.hp ? 'full' : 'empty'));
+      this.hud.forEach((img, i) => {
+        img.setVisible(i < AK.save.maxHp);
+        img.setFrame(i < this.player.hp ? 'full' : 'empty');
+      });
       const str = String(AK.save.coins);
       this.coinDigits.forEach((img, i) => {
         img.setVisible(i < str.length);
@@ -345,7 +357,7 @@
       const p = this.player;
       if (p.state === 'sit') return;
       p.sit(bench.x, bench.y);
-      p.hp = AK.TUNING.maxHp;
+      p.hp = AK.save.maxHp;
       p.invulnUntil = 0;
       this.updateHud();
       AK.save.checkpoint = { level: this.level.id, bench: bench.index };

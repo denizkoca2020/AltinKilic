@@ -100,6 +100,12 @@
     interactBtn.classList.toggle('hidden', !label);
   };
 
+  // ---- Tüccar dükkânı ----
+  AK.shop = new AK.Shop();
+  window.addEventListener('keydown', (e) => {
+    if (AK.shop.isOpen && (e.code === 'Escape' || e.code === 'KeyE')) AK.shop.close();
+  });
+
   // ---- Kısa bildirim yazısı ----
   const toastEl = document.getElementById('toast');
   let toastTimer = 0;

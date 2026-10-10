@@ -17,7 +17,6 @@
     dashSpeed: 370,
     dashMs: 170,
     dashCooldownMs: 480,
-    maxHp: 5,
     hurtMs: 260, // darbe sonrası kontrolün kısa süre kaybı
     invulnMs: 1300, // darbe sonrası dokunulmazlık
     hurtKnockX: 170,
@@ -55,8 +54,8 @@
       this.wasOnGround = false;
       this.prevVy = 0;
       this.slash = null;
-      this.hp = TUNING.maxHp;
-      this.damage = 1; // kılıç gücü (dükkândan geliştirilebilir)
+      this.hp = AK.save.maxHp; // dükkândaki Altın Miğfer ile artar
+      this.damage = AK.save.swordLv; // dükkândaki Keskin Kılıç ile artar
       this.dead = false;
       this.hurtEndAt = 0;
       this.invulnUntil = 0;
@@ -255,7 +254,8 @@
 
     // Kılıcın vurduğu alan (dünya koordinatlarında)
     swordHitbox() {
-      const w = 36, h = 40;
+      const k = 1 + (AK.save.swordLv - 1) * 0.12; // kılıç izi büyüdükçe vuruş alanı da büyür
+      const w = Math.round(36 * k), h = Math.round(40 * k);
       const x = this.facing > 0 ? this.x + 2 : this.x - 2 - w;
       return new Phaser.Geom.Rectangle(x, this.y - 34, w, h);
     }
@@ -266,6 +266,11 @@
       s.setFlipX(this.facing < 0);
       if (this.facing < 0) s.setOrigin(1 - 2 / 38, 0.5);
       s.setAlpha(0.95);
+      // keskinleşen kılıcın izi büyür ve renklenir
+      const lv = AK.save.swordLv;
+      s.setScale(1 + (lv - 1) * 0.12);
+      if (lv === 2) s.setTint(0xffe0a0);
+      if (lv === 3) s.setTint(0xffc070, 0xffffff, 0xffc070, 0xffffff);
       s.play('slash');
       s.once('animationcomplete', () => { s.destroy(); if (this.slash === s) this.slash = null; });
       this.slash = s;

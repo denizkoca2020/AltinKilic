@@ -97,7 +97,7 @@
     merchant: { x: 17, y: 18 },
     dummies: [],
     enemies: [
-      { type: 'husk', x: 27, y: 18 },
+      { type: 'husk', x: 42, y: 18 }, // çukurun ötesinde: giriş (bank + tüccar) güvenli kalsın
       { type: 'crawler', x: 37, y: 13 },
       { type: 'flyer', x: 38, y: 8 },
       { type: 'husk', x: 44, y: 10 },

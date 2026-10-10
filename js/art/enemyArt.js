@@ -293,3 +293,53 @@
     AK.addGrid(scene, 'shrine', shrine());
   };
 })();
+
+// ---------- Tüccar (dost karakter) 32x34 ----------
+(function () {
+  const AK = window.AK;
+  const P = AK.PAL;
+  function merchant(bob) {
+    const g = new AK.PixelGrid(32, 34);
+    const b = bob;
+    // asa + fener
+    g.rect(25, 8, 2, 26, P.woodDark);
+    g.rect(25, 8, 1, 26, P.wood);
+    g.rect(22, 9, 5, 1, P.woodDark);
+    g.rect(21, 10, 3, 5, '#2b2f40');
+    g.rect(22, 11, 1, 3, P.goldLight);
+    // dev sırt çantası
+    g.ellipse(9, 17 + b, 8, 9, '#6b4a2e');
+    g.ellipse(8, 15 + b, 5, 5, '#86603c');
+    g.rect(2, 20 + b, 14, 1, '#4a321e');
+    g.rect(5, 8 + b, 3, 4, '#a07a4a'); // tava/kap
+    g.rect(12, 6 + b, 4, 3, P.goldMid); // altın kese
+    g.set(13, 6 + b, P.goldShine);
+    // pelerinli gövde
+    g.ellipse(17, 22 + b, 7, 9, '#2f4a3a');
+    g.rect(11, 26 + b, 13, 6 - b, '#2f4a3a');
+    g.rect(12, 28 + b, 11, 1, '#22362a');
+    g.rect(14, 18 + b, 2, 9, '#3f6450');
+    // ayaklar
+    g.rect(13, 32, 4, 2, P.outline);
+    g.rect(19, 32, 4, 2, P.outline);
+    // kapüşon + maske yüz
+    g.ellipse(18, 11 + b, 6, 6, '#2f4a3a');
+    g.ellipse(19, 12 + b, 4, 4, '#e8dcc4');
+    g.rect(17, 11 + b, 2, 2, P.outline);
+    g.rect(21, 11 + b, 2, 2, P.outline);
+    g.set(18, 11 + b, '#fff');
+    g.set(22, 11 + b, '#fff');
+    g.rect(14, 5 + b, 6, 2, '#3f6450');
+    // kol (asayı tutan)
+    g.rect(22, 18 + b, 4, 2, '#2f4a3a');
+    g.rect(24, 17 + b, 2, 3, '#e8dcc4');
+    g.outline(P.outline);
+    return g;
+  }
+  const prev = AK.buildEnemyTextures;
+  AK.buildEnemyTextures = function (scene) {
+    prev(scene);
+    AK.addFrames(scene, 'merchant', 32, 34, [{ name: 'm0', grid: merchant(0) }, { name: 'm1', grid: merchant(1) }]);
+    scene.anims.create({ key: 'merchant-idle', frames: [{ key: 'merchant', frame: 'm0' }, { key: 'merchant', frame: 'm1' }], frameRate: 2, repeat: -1 });
+  };
+})();
