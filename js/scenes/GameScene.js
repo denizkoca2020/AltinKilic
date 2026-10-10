@@ -1,0 +1,185 @@
+// Ana oyun sahnesi: bölüm, paralaks arka plan, ışıklar, savaşçı, kamera ve HUD.
+(function () {
+  const AK = (window.AK = window.AK || {});
+  const T = () => AK.TILE;
+
+  class GameScene extends Phaser.Scene {
+    constructor() {
+      super('Game');
+    }
+
+    create() {
+      const L = AK.LEVEL;
+      const t = T();
+      const worldW = L.W * t;
+      const worldH = L.H * t;
+      this.worldW = worldW;
+      this.worldH = worldH;
+      const { grid, tiles } = L.build();
+
+      this.fx = new AK.FX(this);
+      this.createBackground();
+
+      // ---- Zemin (tilemap) ----
+      const map = this.make.tilemap({ data: tiles, tileWidth: t, tileHeight: t });
+      const tileset = map.addTilesetImage('tiles', 'tiles', t, t, 0, 0);
+      this.ground = map.createLayer(0, tileset, 0, 0).setDepth(2);
+      this.ground.setCollisionByExclusion([-1]);
+
+      // Alt sınır açık: çukura düşülebilsin
+      this.physics.world.setBounds(0, 0, worldW, worldH + 200);
+      this.physics.world.setBoundsCollision(true, true, true, false);
+
+      this.decorate(grid);
+
+      // ---- Kuklalar ----
+      this.dummies = L.OBJECTS.dummies.map((d) => new AK.Dummy(this, d.x * t + t / 2, (d.y + 1) * t));
+
+      // ---- Savaşçı ----
+      const ps = L.OBJECTS.player;
+      this.player = new AK.Warrior(this, ps.x * t + t / 2, (ps.y + 1) * t);
+      this.physics.add.collider(this.player, this.ground);
+      this.safePos = { x: this.player.x, y: this.player.y };
+
+      // ---- Kamera ----
+      const cam = this.cameras.main;
+      cam.setBounds(0, 0, worldW, worldH);
+      cam.startFollow(this.player, true, 0.12, 0.12);
+      cam.setFollowOffset(0, 26);
+      cam.setRoundPixels(true);
+      cam.fadeIn(600, 5, 7, 13);
+
+      this.fx.ambient(worldW, worldH);
+      this.createOverlay();
+
+      this.scale.on('resize', this.onResize, this);
+      this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
+      this.onResize(this.scale.gameSize);
+
+      if (new URLSearchParams(location.search).has('debug')) this.physics.world.createDebugGraphic();
+      AK.scene = this; // geliştirme/test kolaylığı
+    }
+
+    // ---------- Arka plan ----------
+    createBackground() {
+      const { width, height } = this.scale.gameSize;
+      this.bgFar = this.add.tileSprite(0, 0, width, height, 'bg-far').setOrigin(0).setScrollFactor(0).setDepth(-20);
+      this.bgMid = this.add.tileSprite(0, 0, width, height, 'bg-mid').setOrigin(0).setScrollFactor(0).setDepth(-15);
+
+      // tavandan süzülen ışık huzmeleri
+      for (const bx of AK.LEVEL.OBJECTS.beams) {
+        const b = this.add.image(bx * T(), 24, 'beam').setOrigin(0.5, 0).setScrollFactor(0.85, 1)
+          .setDepth(-10).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.1);
+        this.tweens.add({ targets: b, alpha: 0.05, duration: 2600 + Math.random() * 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    }
+
+    // ---------- Süslemeler: fenerler, çimler ----------
+    decorate(grid) {
+      const t = T();
+      const L = AK.LEVEL;
+      const r = AK.rng(1234);
+
+      // yüzeylerdeki yosun / çim öbekleri
+      for (let y = 1; y < L.H; y++)
+        for (let x = 0; x < L.W; x++) {
+          if (!grid[y][x] || grid[y - 1][x] || r() > 0.4) continue;
+          this.add.image(x * t + t / 2, y * t + 1, 'grass', 'g' + Math.floor(r() * 4)).setOrigin(0.5, 1).setDepth(3);
+        }
+
+      // asılı fenerler (hafifçe sallanır, ışığı titrer)
+      for (const ln of L.OBJECTS.lanterns) {
+        const x = ln.x * t + t / 2, y = ln.y * t;
+        const chainLen = ln.len * t;
+        const c = this.add.container(x, y).setDepth(1);
+        const chain = this.add.rectangle(0, 0, 1, chainLen, 0x3a3f55).setOrigin(0.5, 0);
+        const lamp = this.add.image(0, chainLen, 'lantern').setOrigin(0.5, 0);
+        c.add([chain, lamp]);
+        this.tweens.add({ targets: c, angle: { from: -2.5, to: 2.5 }, duration: 2200 + r() * 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+        const glow = this.add.image(x, y + chainLen + 12, 'glow').setDepth(6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
+        this.tweens.add({ targets: glow, alpha: 0.4, scale: 0.92, duration: 140 + r() * 220, yoyo: true, repeat: -1, repeatDelay: r() * 900 });
+        const wide = this.add.image(x, y + chainLen + 12, 'glow').setDepth(-5).setScale(2.6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.22);
+        this.tweens.add({ targets: wide, alpha: 0.16, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    }
+
+    // ---------- Ekran üstü katmanlar: sis, vinyet, HUD ----------
+    createOverlay() {
+      const { width, height } = this.scale.gameSize;
+      this.fog = this.add.tileSprite(0, height - 80, width, 90, 'fog').setOrigin(0).setScrollFactor(0).setDepth(13).setAlpha(0.35);
+      this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(90).setDisplaySize(width, height);
+
+      this.hud = [];
+      for (let i = 0; i < 5; i++) {
+        this.hud.push(this.add.image(12 + i * 14, 12, 'hp', 'full').setOrigin(0).setScrollFactor(0).setDepth(100));
+      }
+    }
+
+    onResize(gameSize) {
+      const { width, height } = gameSize;
+      this.cameras.main.setSize(width, height);
+      this.bgFar.setSize(width, height);
+      this.bgMid.setSize(width, height);
+      // arka plan dokuları 270px; ekran daha kısaysa alttan hizala
+      this.bgFar.tilePositionY = 270 - height;
+      this.bgMid.tilePositionY = 270 - height;
+      this.fog.setSize(width, 90).setY(height - 80);
+      this.vignette.setDisplaySize(width, height);
+    }
+
+    // ---------- Savaş ----------
+    onSwordSwing(rect) {
+      let hit = false;
+      for (const d of this.dummies) {
+        const r = d.getHitRect();
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
+        hit = true;
+        d.hit(this.player.facing);
+        const ix = Phaser.Math.Clamp(this.player.x + this.player.facing * 16, r.left, r.right);
+        this.fx.hitSparks(ix, this.player.y - 16);
+      }
+      if (hit) {
+        this.cameras.main.shake(90, 0.006);
+        this.hitStop(70);
+      }
+    }
+
+    // Vuruş anında kısa donma: darbeye ağırlık katar
+    hitStop(ms) {
+      if (this.physics.world.isPaused) return;
+      this.physics.pause();
+      this.player.anims.pause();
+      this.time.delayedCall(ms, () => {
+        this.physics.resume();
+        this.player.anims.resume();
+      });
+    }
+
+    update(time) {
+      if (this.physics.world.isPaused) return;
+      const p = this.player;
+      p.update(time, AK.input);
+
+      if (p.onGround && p.state !== 'dash') { this.safePos.x = p.x; this.safePos.y = p.y; }
+
+      // çukura düşünce son güvenli noktaya dön
+      if (p.y > this.worldH + 60) {
+        p.setPosition(this.safePos.x - p.facing * 20, this.safePos.y - 4);
+        p.body.setVelocity(0, 0);
+        this.cameras.main.flash(250, 20, 25, 45);
+      }
+
+      // kamera bakış yönüne doğru biraz öne kayar
+      const cam = this.cameras.main;
+      cam.followOffset.x = Phaser.Math.Linear(cam.followOffset.x, -p.facing * 28, 0.04);
+
+      // paralaks
+      this.bgFar.tilePositionX = cam.scrollX * 0.12;
+      this.bgMid.tilePositionX = cam.scrollX * 0.35;
+      this.fog.tilePositionX = cam.scrollX * 1.2 + time * 0.008;
+    }
+  }
+
+  AK.GameScene = GameScene;
+})();

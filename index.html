@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Altın Kılıç">
+  <meta name="theme-color" content="#05070d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Altın Kılıç</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="controls"></div>
+
+  <div id="title" class="overlay allow-touch">
+    <div class="title-box">
+      <div class="logo">ALTIN KILIÇ</div>
+      <div class="sub">Unutulmuş Mağara</div>
+      <div class="start">Başlamak için dokun</div>
+      <div class="help keys-only">
+        ← → yürü &nbsp;·&nbsp; Space zıpla &nbsp;·&nbsp; X kılıç &nbsp;·&nbsp; C kalkan &nbsp;·&nbsp; Z / Shift atıl
+      </div>
+    </div>
+  </div>
+
+  <div id="rotate" class="overlay">
+    <div class="title-box">
+      <div class="rotate-icon"></div>
+      <div class="sub">Lütfen iPad'i yan çevirin</div>
+    </div>
+  </div>
+
+  <script src="lib/phaser.min.js"></script>
+  <script src="js/art/pixel.js"></script>
+  <script src="js/art/warriorArt.js"></script>
+  <script src="js/art/worldArt.js"></script>
+  <script src="js/level.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ui/TouchControls.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/objects/Warrior.js"></script>
+  <script src="js/objects/Dummy.js"></script>
+  <script src="js/scenes/BootScene.js"></script>
+  <script src="js/scenes/GameScene.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

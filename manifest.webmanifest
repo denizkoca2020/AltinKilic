@@ -1,0 +1,9 @@
+{
+  "name": "Altın Kılıç",
+  "short_name": "Altın Kılıç",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05070d",
+  "theme_color": "#05070d"
+}
