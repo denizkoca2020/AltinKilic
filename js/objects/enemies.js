@@ -114,7 +114,7 @@
       if (this.dead) return;
       const tx = player.x, ty = player.y - 14;
       const d = Phaser.Math.Distance.Between(this.x, this.y, tx, ty);
-      if (!this.aggro && d < 140) this.aggro = true;
+      if (!this.aggro && d < 165) this.aggro = true;
       if (this.aggro && d > 260) this.aggro = false;
       if (this.stunned(time)) return;
 

@@ -49,6 +49,12 @@ Tüm efektler ve müzik Web Audio ile kodla üretilir (ses dosyası yoktur). Sa�
 
 Adres parametreleri: `?debug` (fizik kutuları), `?touch` (masaüstünde ekran tuşlarını göster), `?skip` (başlangıç ekranını atla).
 
+## Bölüm kontrolü
+Harita değiştirdikten sonra her düşmana ve nesneye zıplayarak ulaşılabildiğini kontrol edin:
+```
+node tools/check-levels.js
+```
+
 ## Klasör yapısı
 ```
 index.html, style.css, manifest.webmanifest

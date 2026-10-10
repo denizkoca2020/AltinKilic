@@ -18,14 +18,14 @@
     [14, 13, 18, 13],
     [21, 10, 25, 10],
     [28, 17, 34, 18], // basamak
-    [37, 15, 40, 15],
+    [37, 16, 40, 16],
     [50, 16, 55, 16],
     [58, 13, 61, 13],
     [64, 10, 71, 10],
     [75, 2, 77, 12], // tavandan inen kaya sütunu
     [85, 16, W - 1, 18], // yükseltilmiş zemin
-    [90, 12, 94, 12],
-    [98, 9, 102, 9],
+    [90, 13, 94, 13],
+    [98, 10, 102, 10],
     [30, 2, 33, 4], // sarkıt kayalar
     [60, 2, 61, 5],
     [44, 2, 47, 3],
@@ -53,7 +53,7 @@
       { type: 'crawler', x: 80, y: 18 },
       { type: 'flyer', x: 88, y: 8 },
       { type: 'husk', x: 100, y: 15 },
-      { type: 'flyer', x: 104, y: 5 },
+      { type: 'flyer', x: 104, y: 7 },
     ],
     lanterns: [
       { x: 12, y: 2, len: 3 },
@@ -79,9 +79,9 @@
     [HALL_W - 2, 0, HALL_W - 1, 21], // sağ duvar
     [0, 19, 29, 21], // giriş zemini
     [33, 19, HALL_W - 1, 21], // çukurdan sonrası (boss arenası dahil)
-    [22, 15, 25, 15], // koridor platformları
-    [35, 14, 39, 14],
-    [43, 11, 46, 11],
+    [22, 16, 25, 16], // koridor platformları (her biri bir öncekinden en fazla 3 karo yüksek)
+    [35, 16, 39, 16],
+    [42, 13, 46, 13],
     [40, 2, 41, 6], // sarkan sütun
     [57, 14, 60, 14], // arena yan platformları
     [76, 14, 79, 14],
@@ -98,10 +98,10 @@
     dummies: [],
     enemies: [
       { type: 'husk', x: 42, y: 18 }, // çukurun ötesinde: giriş (bank + tüccar) güvenli kalsın
-      { type: 'crawler', x: 37, y: 13 },
-      { type: 'flyer', x: 38, y: 8 },
-      { type: 'husk', x: 44, y: 10 },
-      { type: 'flyer', x: 47, y: 7 },
+      { type: 'crawler', x: 37, y: 15 },
+      { type: 'flyer', x: 38, y: 12 },
+      { type: 'husk', x: 44, y: 12 },
+      { type: 'flyer', x: 48, y: 10 },
     ],
     // boss arenası: oyuncu gateL'yi geçince kapılar kapanır
     boss: { x: 82, y: 18, gateL: 50, gateR: 89, trigger: 54 },
