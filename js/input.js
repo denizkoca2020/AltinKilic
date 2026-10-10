@@ -1,9 +1,9 @@
 // Ortak giriş durumu: klavye ve dokunmatik tuşlar aynı eylemleri besler.
-// Eylemler: left, right, jump, attack, shield, dash
+// Eylemler: left, right, jump, attack, shield, dash, interact
 (function () {
   const AK = (window.AK = window.AK || {});
 
-  const ACTIONS = ['left', 'right', 'jump', 'attack', 'shield', 'dash'];
+  const ACTIONS = ['left', 'right', 'jump', 'attack', 'shield', 'dash', 'interact'];
 
   class InputState {
     constructor() {
@@ -45,6 +45,7 @@
     KeyX: 'attack', KeyJ: 'attack',
     KeyC: 'shield', KeyK: 'shield',
     KeyZ: 'dash', KeyL: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash',
+    KeyE: 'interact', ArrowDown: 'interact', KeyS: 'interact',
   };
 
   window.addEventListener('keydown', (e) => {

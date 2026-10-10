@@ -8,7 +8,8 @@
       super('Game');
     }
 
-    create() {
+    create(data) {
+      data = data || {};
       const L = AK.LEVEL;
       const t = T();
       const worldW = L.W * t;
@@ -35,9 +36,33 @@
       // ---- Kuklalar ----
       this.dummies = L.OBJECTS.dummies.map((d) => new AK.Dummy(this, d.x * t + t / 2, (d.y + 1) * t));
 
+      // ---- Dinlenme bankları ----
+      this.interactables = [];
+      this.benches = L.OBJECTS.benches.map((b, i) => {
+        const bx = b.x * t + t / 2, by = (b.y + 1) * t;
+        const img = this.add.image(bx, by, 'bench').setOrigin(0.5, 1).setDepth(4);
+        const glow = this.add.image(bx, by - 10, 'glow').setDepth(3).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.4);
+        const bench = { index: i, x: bx, y: by, img, glow };
+        this.interactables.push({ x: bx, y: by, w: 40, label: 'OTUR', use: () => this.restAtBench(bench) });
+        return bench;
+      });
+
       // ---- Savaşçı ----
+      // Ölünce son oturulan bankta, yoksa bölüm başında doğar
+      const cp = AK.save.checkpoint;
+      const respawnBench = data.respawn && cp && cp.level === 'cave' ? this.benches[cp.bench] : null;
       const ps = L.OBJECTS.player;
       this.player = new AK.Warrior(this, ps.x * t + t / 2, (ps.y + 1) * t);
+      if (respawnBench) {
+        this.player.setPosition(respawnBench.x, respawnBench.y);
+        this.player.sit(respawnBench.x, respawnBench.y);
+        respawnBench.glow.setAlpha(0.5);
+      }
+
+      // etkileşim oku
+      this.promptArrow = this.add.image(0, 0, 'prompt').setOrigin(0.5, 1).setDepth(20).setVisible(false);
+      this.activeInteract = null;
+      AK.setInteract(null);
       this.physics.add.collider(this.player, this.ground);
       this.safePos = { x: this.player.x, y: this.player.y };
 
@@ -230,7 +255,7 @@
         p.setVisible(false);
       });
       this.time.delayedCall(1100, () => this.cameras.main.fadeOut(700, 5, 7, 13));
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart());
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart({ respawn: true }));
     }
 
     onSwordSwing(rect) {
@@ -271,10 +296,46 @@
       });
     }
 
+    // ---------- Dinlenme bankı ----------
+    restAtBench(bench) {
+      const p = this.player;
+      if (p.state === 'sit') return;
+      p.sit(bench.x, bench.y);
+      p.hp = AK.TUNING.maxHp;
+      p.invulnUntil = 0;
+      this.updateHud();
+      AK.save.checkpoint = { level: 'cave', bench: bench.index };
+      AK.saveGame();
+      AK.sfx('bench');
+      AK.toast('DİNLENDİN · CANLAR DOLDU · KAYIT ALINDI');
+      this.benches.forEach((b) => b.glow.setAlpha(0));
+      this.tweens.add({ targets: bench.glow, alpha: { from: 1, to: 0.5 }, duration: 1200 });
+      this.fx.hitSparks(bench.x, bench.y - 12);
+    }
+
+    // Yakındaki etkileşim noktasını bul, oku ve tuşu göster
+    updateInteract() {
+      const p = this.player;
+      let best = null;
+      if (!p.dead && p.state !== 'sit' && p.state !== 'dash' && p.onGround) {
+        for (const it of this.interactables) {
+          if (Math.abs(p.x - it.x) < it.w / 2 && Math.abs(p.y - it.y) < 20) { best = it; break; }
+        }
+      }
+      if (best !== this.activeInteract) {
+        this.activeInteract = best;
+        AK.setInteract(best ? best.label : null);
+        this.promptArrow.setVisible(!!best);
+      }
+      if (best) this.promptArrow.setPosition(best.x, best.y - 30 + Math.round(Math.sin(this.time.now / 220) * 2));
+      if (AK.input.consume('interact') && best) best.use();
+    }
+
     update(time) {
       if (this.physics.world.isPaused) return;
       const p = this.player;
       p.update(time, AK.input);
+      this.updateInteract();
       for (const e of this.enemies.getChildren().slice()) e.update(time, p);
 
       if (p.onGround && p.state !== 'dash') { this.safePos.x = p.x; this.safePos.y = p.y; }

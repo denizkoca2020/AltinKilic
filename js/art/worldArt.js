@@ -300,6 +300,47 @@
       AK.addGrid(scene, 'dummy', g);
     }
 
+    // dinlenme bankı (alt-orta noktadan konumlanır)
+    {
+      const g = new AK.PixelGrid(36, 18);
+      // sırt dayanağı
+      g.rect(3, 1, 30, 3, P.wood);
+      g.rect(3, 1, 30, 1, '#7a5236');
+      g.rect(3, 3, 30, 1, P.woodDark);
+      // altın süsler
+      [8, 17, 26].forEach((x) => { g.rect(x, 0, 3, 5, P.goldMid); g.set(x + 1, 1, P.goldShine); g.set(x + 1, 3, P.goldLight); });
+      // sırt bağlantıları
+      g.rect(5, 4, 2, 4, P.woodDark);
+      g.rect(29, 4, 2, 4, P.woodDark);
+      // oturak
+      g.rect(1, 8, 34, 3, P.wood);
+      g.rect(1, 8, 34, 1, '#7a5236');
+      g.rect(1, 10, 34, 1, P.woodDark);
+      g.rect(0, 8, 1, 2, P.goldMid);
+      g.rect(35, 8, 1, 2, P.goldMid);
+      // taş ayaklar
+      [[3, 11], [28, 11]].forEach(([x, y]) => {
+        g.rect(x, y, 5, 7, P.stoneMid);
+        g.rect(x, y, 5, 1, P.stoneRim);
+        g.rect(x, y, 1, 7, P.stoneLight);
+        g.rect(x + 4, y + 1, 1, 6, P.stoneDark);
+      });
+      g.outline(P.outline);
+      AK.addGrid(scene, 'bench', g);
+    }
+
+    // etkileşim oku (bank / kapı / tüccar üstünde süzülür)
+    {
+      const g = new AK.PixelGrid(7, 6);
+      g.rect(0, 0, 7, 2, P.goldLight);
+      g.rect(1, 2, 5, 2, P.goldLight);
+      g.rect(2, 4, 3, 1, P.goldMid);
+      g.set(3, 5, P.goldMid);
+      g.rect(1, 0, 2, 1, P.goldShine);
+      g.outline(P.outline);
+      AK.addGrid(scene, 'prompt', g);
+    }
+
     // küçük çim/yosun öbekleri (zemin üstü süs)
     {
       const frames = [];

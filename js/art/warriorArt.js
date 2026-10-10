@@ -205,6 +205,10 @@
     dash: { back: [-5, 2], front: [2, 3], b: 1, lean: 2, cape: { horizontal: true, len: 13 }, arm: 'dash', plume: 3 },
 
     hurt: { back: [-3, 2], front: [3, 1], b: 0, lean: -2, cape: { len: 10, spread: 5, sway: 3, up: 0.3 }, arm: 'raise', plume: 3 },
+
+    // bankta oturma (bacaklar öne uzanır, gövde alçalır)
+    sit0: { back: [4, 1], front: [5, 0], b: 3, cape: { len: 9, spread: 2, sway: 0 }, arm: 'rest', plume: 0 },
+    sit1: { back: [4, 1], front: [5, 0], b: 4, cape: { len: 9, spread: 2, sway: 1 }, arm: 'rest', plume: 1 },
   };
 
   AK.buildWarriorTextures = function (scene) {
@@ -220,6 +224,7 @@
     scene.anims.create({ key: 'w-shield', frames: f(['shield']), frameRate: 1 });
     scene.anims.create({ key: 'w-dash', frames: f(['dash']), frameRate: 1 });
     scene.anims.create({ key: 'w-hurt', frames: f(['hurt']), frameRate: 1 });
+    scene.anims.create({ key: 'w-sit', frames: f(['sit0', 'sit1']), frameRate: 1.5, repeat: -1 });
   };
 
   AK.WARRIOR_FRAME = { w: FW, h: FH };

@@ -88,6 +88,28 @@
   });
   applyMute();
 
+  // ---- Etkileşim tuşu (bank, kapı, tüccar yanında belirir) ----
+  const interactBtn = document.getElementById('interact');
+  interactBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    AK.input.set('ui', 'interact', true);
+    AK.input.set('ui', 'interact', false);
+  });
+  AK.setInteract = (label) => {
+    if (label) interactBtn.querySelector('.label').textContent = label;
+    interactBtn.classList.toggle('hidden', !label);
+  };
+
+  // ---- Kısa bildirim yazısı ----
+  const toastEl = document.getElementById('toast');
+  let toastTimer = 0;
+  AK.toast = (text, ms = 2200) => {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+  };
+
   // ---- Başlangıç ekranı ----
   const title = document.getElementById('title');
   const start = () => {

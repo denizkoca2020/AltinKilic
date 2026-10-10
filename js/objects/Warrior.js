@@ -95,6 +95,13 @@
       const wantAttack = input.consume('attack');
       const wantDash = input.consume('dash');
 
+      // ---- Bankta oturuyor: hareket edince kalkar ----
+      if (this.state === 'sit') {
+        const h = input.held;
+        if (h.left || h.right || h.jump || time < this.jumpBufferUntil || wantAttack || wantDash) this.standUp();
+        else return;
+      }
+
       // ---- Darbe aldı: kısa süre kontrol yok ----
       if (this.state === 'hurt') {
         if (time < this.hurtEndAt) { this.updateSlash(); return; }
@@ -203,8 +210,30 @@
       return 'hurt';
     }
 
+    // Bankta otur: yerçekimi kapanır, savaşçı oturağa yerleşir
+    sit(x, groundY) {
+      this.endDash();
+      this.state = 'sit';
+      this.shielding = false;
+      this.jumping = false;
+      this.body.setAllowGravity(false);
+      this.body.setVelocity(0, 0);
+      this.setPosition(x, groundY - 6);
+      this.sitGroundY = groundY;
+      this.play('w-sit', true);
+    }
+
+    standUp() {
+      this.state = 'normal';
+      this.setPosition(this.x, this.sitGroundY);
+      this.body.setAllowGravity(true);
+      this.lastGroundAt = this.scene.time.now; // kalkarken zıplanabilsin
+      this.play('w-idle', true);
+    }
+
+    // atılma ya da oturma bitince yerçekimini geri aç
     endDash() {
-      if (this.state === 'dash') this.body.setAllowGravity(true);
+      if (this.state === 'dash' || this.state === 'sit') this.body.setAllowGravity(true);
     }
 
     startDash(time, input, onGround) {

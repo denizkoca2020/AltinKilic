@@ -32,7 +32,12 @@
 
   // Dünya nesneleri (karo koordinatları)
   const OBJECTS = {
-    player: { x: 5, y: 18 },
+    player: { x: 7, y: 18 },
+    // dinlenme bankları (y = durduğu karo satırı)
+    benches: [
+      { x: 4, y: 18 },
+      { x: 88, y: 15 },
+    ],
     // antrenman kuklaları başlangıç bölgesinde
     dummies: [
       { x: 16, y: 18 },
