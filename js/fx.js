@@ -40,7 +40,11 @@
     }
 
     // havada süzülen ışık zerreleri
-    ambient(worldW, worldH) {
+    ambient(worldW, worldH, theme) {
+      // ormanda yeşil ateş böcekleri, şehirde soluk mor zerreler
+      const tint = theme === 'forest' ? [0xc8ff80, 0x80ffb0, 0xffffa0]
+        : theme === 'city' ? [0x9a8ac8, 0xffffff]
+        : [0xffe9a8, 0xbfd8ff, 0xffffff];
       this.scene.add.particles(0, 0, 'dot', {
         x: { min: 0, max: worldW },
         y: { min: 0, max: worldH },
@@ -49,11 +53,27 @@
         speedY: { min: -12, max: -3 },
         alpha: { values: [0, 0.7, 0] },
         scale: { min: 0.5, max: 1 },
-        tint: [0xffe9a8, 0xbfd8ff, 0xffffff],
-        frequency: 90,
+        tint,
+        frequency: theme === 'city' ? 200 : 90,
         maxAliveParticles: 110,
         blendMode: 'ADD',
       }).setDepth(7);
+    }
+
+    // ekran boyunca eğik yağan yağmur (kameraya sabit)
+    rain() {
+      const w = this.scene.scale.gameSize.width;
+      this.scene.add.particles(0, 0, 'rain', {
+        x: { min: -20, max: w + 60 },
+        y: -8,
+        lifespan: 800,
+        speedY: { min: 380, max: 460 },
+        speedX: { min: -80, max: -60 },
+        rotate: 10,
+        alpha: { min: 0.25, max: 0.55 },
+        frequency: 14,
+        quantity: 2,
+      }).setScrollFactor(0).setDepth(14);
     }
 
     landDust(x, y) {

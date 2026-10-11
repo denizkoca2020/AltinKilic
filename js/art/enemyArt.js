@@ -343,3 +343,209 @@
     scene.anims.create({ key: 'merchant-idle', frames: [{ key: 'merchant', frame: 'm0' }, { key: 'merchant', frame: 'm1' }], frameRate: 2, repeat: -1 });
   };
 })();
+
+// ======================= Orman ve şehir düşmanları =======================
+(function () {
+  const AK = window.AK;
+  const P = AK.PAL;
+  const O = P.outline;
+
+  // ---------- Mantarcık 20x20: idle / squash (zıplamaya hazırlık) / air ----------
+  function mushroom(pose) {
+    const g = new AK.PixelGrid(20, 20);
+    const sq = pose === 'squash' ? 2 : 0;
+    const up = pose === 'air' ? -1 : 0;
+    // gövde
+    g.ellipse(10, 15 + sq / 2, 5 + sq / 2, 4 - sq / 2, '#e8dcc4');
+    g.rect(6, 17, 8, 1, '#b9ad94');
+    g.rect(8, 13 + sq, 1, 2, O); // gözler
+    g.rect(12, 13 + sq, 1, 2, O);
+    g.set(10, 16 + sq, '#c06a6a');
+    // ayaklar
+    if (pose !== 'air') { g.rect(6, 19, 3, 1, O); g.rect(11, 19, 3, 1, O); }
+    else { g.rect(7, 18, 2, 1, O); g.rect(11, 18, 2, 1, O); }
+    // şapka
+    g.ellipse(10, 7 + sq + up, 9, 5 - sq / 2, '#b8324a');
+    g.rect(1, 9 + sq + up, 18, 1, '#7a1f30');
+    g.ellipse(6, 5 + sq + up, 1, 1, '#ffffff');
+    g.ellipse(13, 6 + sq + up, 2, 1, '#ffffff');
+    g.set(10, 3 + sq + up, '#ffffff');
+    g.set(16, 7 + sq + up, '#ffffff');
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Diken Arısı 22x18: f0 / f1 kanat, dive dalış ----------
+  function wasp(pose) {
+    const g = new AK.PixelGrid(22, 18);
+    const dive = pose === 'dive';
+    // kanatlar
+    if (pose === 'f0' || dive) g.ellipse(9, 4, 4, 3, 'rgba(210,235,255,0.75)');
+    else g.ellipse(8, 7, 5, 2, 'rgba(210,235,255,0.75)');
+    // karın (çizgili) + iğne
+    for (let x = 3; x <= 10; x++) {
+      const col = Math.floor(x / 2) % 2 ? '#f2c75a' : '#2a2016';
+      g.rect(x, 9, 1, 5, col);
+    }
+    g.line(1, 13, 3, 12, '#2a2016');
+    g.set(0, 14, '#f2f2f2');
+    // göğüs + kafa
+    g.ellipse(13, 10, 3, 3, '#3a2a14');
+    g.ellipse(17, 9, 3, 3, '#f2c75a');
+    g.rect(18, 8, 2, 2, '#c8302a');
+    g.set(19, 8, '#ff9a8a');
+    g.line(19, 6, 21, 4, O); // anten
+    if (dive) g.rect(15, 13, 4, 1, '#2a2016');
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Diken Sarmaşığı 22x26: idle / open (ateşliyor) ----------
+  function thorn(open) {
+    const g = new AK.PixelGrid(22, 26);
+    // kök + gövde
+    g.rect(8, 24, 7, 2, '#2a3a22');
+    g.line(11, 24, 10, 14, '#3f5530', 2);
+    g.line(9, 20, 5, 17, '#3f5530', 1);
+    g.ellipse(4, 16, 2, 1, '#6f8f4a');
+    g.line(12, 21, 16, 19, '#3f5530', 1);
+    g.ellipse(17, 18, 2, 1, '#6f8f4a');
+    // tomurcuk baş
+    g.ellipse(11, 9, 6, 6, '#4f8a3a');
+    g.ellipse(9, 7, 3, 3, '#7fbf5a');
+    // dikenler
+    [[4, 4], [11, 1], [17, 5], [3, 12], [18, 13]].forEach(([x, y]) => g.set(x, y, '#d8e8a0'));
+    // ağız
+    if (open) { g.ellipse(16, 10, 3, 3, '#3a0f18'); g.set(18, 9, '#d8e8a0'); g.set(18, 11, '#d8e8a0'); }
+    else g.rect(15, 10, 4, 1, '#1f3a18');
+    g.set(12, 7, '#f2c75a'); // göz
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Kalkanlı Nöbetçi 28x32: walk0 / walk1 / windup / thrust ----------
+  function guard(pose) {
+    const g = new AK.PixelGrid(30, 32);
+    const legs = { walk0: [-2, 2], walk1: [1, -1], windup: [-3, 1], thrust: [-5, 4] }[pose];
+    const lean = pose === 'thrust' ? 2 : pose === 'windup' ? -1 : 0;
+    g.line(11, 24, 11 + legs[0], 30, '#2f2942', 2);
+    g.line(15, 24, 15 + legs[1], 30, '#2f2942', 2);
+    g.rect(10 + legs[0], 30, 4, 2, O);
+    g.rect(14 + legs[1], 30, 4, 2, O);
+    // zırhlı gövde
+    g.ellipse(12 + lean, 18, 6, 7, '#463e60');
+    g.rect(8 + lean, 14, 8, 2, '#7d72a0');
+    // miğferli kafa (böcek)
+    g.ellipse(15 + lean, 9, 5, 5, '#2f2942');
+    g.rect(12 + lean, 4, 7, 2, '#7d72a0');
+    g.set(15 + lean, 2, '#c8302a'); g.set(15 + lean, 3, '#c8302a'); // sorguç
+    g.rect(17 + lean, 9, 2, 2, '#f2c75a'); // göz
+    // mızrak
+    if (pose === 'thrust') g.line(10, 17, 29, 17, '#9aa0b4', 1);
+    else if (pose === 'windup') g.line(2, 15, 18, 15, '#9aa0b4', 1);
+    else g.line(8, 4, 8, 28, '#9aa0b4', 1);
+    // büyük kule kalkanı (önde)
+    const sx = 19 + lean;
+    g.rect(sx, 10, 5, 17, '#5a5470');
+    g.rect(sx, 10, 5, 1, '#c88a22');
+    g.rect(sx + 4, 10, 1, 17, '#2f2942');
+    g.rect(sx, 26, 5, 1, '#c88a22');
+    g.rect(sx + 1, 15, 3, 1, '#c88a22');
+    g.rect(sx + 2, 13, 1, 5, '#c88a22');
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Çatı Okçusu 24x28: idle / draw (gerilmiş yay) ----------
+  function archer(pose) {
+    const g = new AK.PixelGrid(24, 28);
+    g.line(9, 21, 8, 26, '#2f2942', 2);
+    g.line(12, 21, 13, 26, '#2f2942', 2);
+    g.rect(7, 26, 3, 2, O); g.rect(12, 26, 3, 2, O);
+    // kapüşonlu pelerin
+    g.ellipse(10, 15, 6, 7, '#3a3352');
+    g.rect(4, 15, 3, 7, '#2a2440');
+    g.ellipse(11, 7, 5, 5, '#3a3352');
+    g.ellipse(13, 8, 3, 3, '#e8dcc4'); // maske
+    g.rect(13, 7, 2, 2, O);
+    g.set(14, 7, '#ff9a3c');
+    // yay
+    const pull = pose === 'draw' ? 3 : 0;
+    g.line(19, 4, 21, 14, '#7a5236', 1);
+    g.line(21, 14, 19, 24, '#7a5236', 1);
+    g.line(19, 4, 18 - pull, 14, '#cfc6b0', 1);
+    g.line(18 - pull, 14, 19, 24, '#cfc6b0', 1);
+    if (pose === 'draw') g.line(12, 14, 22, 14, '#9aa0b4', 1);
+    g.line(13, 15, 18 - pull, 14, '#2a2440', 2); // kol
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Lağım Faresi 22x12: r0 / r1 ----------
+  function rat(step) {
+    const g = new AK.PixelGrid(22, 12);
+    g.line(0, 6 - step, 6, 7, '#b07a8a', 1); // kuyruk
+    g.ellipse(11, 7, 6, 3, '#5a5470');
+    g.ellipse(10, 6, 4, 2, '#7a7490');
+    g.ellipse(17, 7, 3, 2, '#5a5470');
+    g.set(20, 7, '#d08a9a'); // burun
+    g.set(18, 6, '#ff3a3a'); // göz
+    g.rect(16, 4, 2, 2, '#7a7490'); // kulak
+    // bacaklar
+    g.rect(8 + step, 10, 2, 1, O); g.rect(14 - step, 10, 2, 1, O);
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Yarasa 24x16: f0 / f1 ----------
+  function bat(up) {
+    const g = new AK.PixelGrid(24, 16);
+    const wy = up ? 3 : 10;
+    g.line(12, 8, 2, wy, '#3a2a4a', 2);
+    g.line(12, 8, 22, wy, '#3a2a4a', 2);
+    g.line(4, wy + 1, 9, 9, '#2a1d38', 1);
+    g.line(20, wy + 1, 15, 9, '#2a1d38', 1);
+    g.ellipse(12, 9, 3, 3, '#4a3a5e');
+    g.set(10, 6, '#4a3a5e'); g.set(14, 6, '#4a3a5e'); // kulaklar
+    g.set(11, 8, '#ff4a6a'); g.set(13, 8, '#ff4a6a');
+    g.outline(O);
+    return g;
+  }
+
+  // ---------- Mermiler ----------
+  function thornShot() {
+    const g = new AK.PixelGrid(9, 3);
+    g.rect(0, 1, 7, 1, '#7fbf5a');
+    g.rect(2, 0, 3, 3, '#4f8a3a');
+    g.set(8, 1, '#d8e8a0');
+    g.set(7, 1, '#d8e8a0');
+    return g;
+  }
+  function arrow() {
+    const g = new AK.PixelGrid(13, 3);
+    g.rect(0, 1, 11, 1, '#7a5236');
+    g.set(0, 0, '#cfc6b0'); g.set(0, 2, '#cfc6b0'); g.set(1, 0, '#cfc6b0'); g.set(1, 2, '#cfc6b0');
+    g.rect(11, 0, 1, 3, '#9aa0b4');
+    g.set(12, 1, '#dfe6f5');
+    return g;
+  }
+
+  const prev = AK.buildEnemyTextures;
+  AK.buildEnemyTextures = function (scene) {
+    prev(scene);
+    const fr = (key, names) => names.map((n) => ({ key, frame: n }));
+    AK.addFrames(scene, 'mushroom', 20, 20, ['idle', 'squash', 'air'].map((n) => ({ name: n, grid: mushroom(n) })));
+    AK.addFrames(scene, 'wasp', 22, 18, ['f0', 'f1', 'dive'].map((n) => ({ name: n, grid: wasp(n) })));
+    scene.anims.create({ key: 'wasp-fly', frames: fr('wasp', ['f0', 'f1']), frameRate: 16, repeat: -1 });
+    AK.addFrames(scene, 'thorn', 22, 26, [{ name: 'idle', grid: thorn(false) }, { name: 'open', grid: thorn(true) }]);
+    AK.addFrames(scene, 'guard', 30, 32, ['walk0', 'walk1', 'windup', 'thrust'].map((n) => ({ name: n, grid: guard(n) })));
+    scene.anims.create({ key: 'guard-walk', frames: fr('guard', ['walk0', 'walk1']), frameRate: 4, repeat: -1 });
+    AK.addFrames(scene, 'archer', 24, 28, [{ name: 'idle', grid: archer('idle') }, { name: 'draw', grid: archer('draw') }]);
+    AK.addFrames(scene, 'rat', 22, 12, [{ name: 'r0', grid: rat(0) }, { name: 'r1', grid: rat(1) }]);
+    scene.anims.create({ key: 'rat-run', frames: fr('rat', ['r0', 'r1']), frameRate: 12, repeat: -1 });
+    AK.addFrames(scene, 'bat', 24, 16, [{ name: 'f0', grid: bat(true) }, { name: 'f1', grid: bat(false) }]);
+    scene.anims.create({ key: 'bat-fly', frames: fr('bat', ['f0', 'f1']), frameRate: 10, repeat: -1 });
+    AK.addGrid(scene, 'thornshot', thornShot());
+    AK.addGrid(scene, 'arrow', arrow());
+  };
+})();

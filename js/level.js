@@ -87,12 +87,15 @@
     [76, 14, 79, 14],
     [52, 2, 54, 3], // arena tavan süsleri
     [83, 2, 85, 3],
-    [93, 17, 95, 18], // sunak kaidesi
+    [90, 17, 92, 18], // sunak kaidesi
   ];
   const HALL_OBJECTS = {
     player: { x: 6, y: 18 },
-    spawns: { fromCave: { x: 6, y: 18, facing: 1 } },
-    doors: [{ x: 3, y: 18, to: 'cave', spawn: 'fromHall' }],
+    spawns: { fromCave: { x: 6, y: 18, facing: 1 }, fromForest: { x: 94, y: 18, facing: -1 } },
+    doors: [
+      { x: 3, y: 18, to: 'cave', spawn: 'fromHall' },
+      { x: 96, y: 18, to: 'forest', spawn: 'fromHall' }, // boss yenilince parmaklık kalkar ve bu kapıya ulaşılır
+    ],
     benches: [{ x: 11, y: 18 }],
     merchant: { x: 17, y: 18 },
     dummies: [],
@@ -105,7 +108,7 @@
     ],
     // boss arenası: oyuncu gateL'yi geçince kapılar kapanır
     boss: { x: 82, y: 18, gateL: 50, gateR: 89, trigger: 54 },
-    shrine: { x: 94, y: 16 },
+    shrine: { x: 91, y: 16 },
     lanterns: [
       { x: 14, y: 2, len: 4 },
       { x: 30, y: 2, len: 6 },
@@ -115,6 +118,100 @@
     ],
     banners: [8, 20, 34, 56, 66, 75, 86],
     beams: [14, 60, 82],
+  };
+
+
+  // ======================= 3. Fısıltı Ormanı =======================
+  // Açık hava: tavan yok. Engebeli toprak, ağaç dalları (platformlar), iki çukur.
+  const FOREST_W = 120;
+  const FOREST_SOLIDS = [
+    [0, 0, 1, 21], // sol uçurum duvarı
+    [FOREST_W - 2, 0, FOREST_W - 1, 21], // sağ uçurum duvarı
+    [0, 19, 22, 21], // zemin
+    [23, 18, 40, 21], // hafif yükselti
+    [44, 19, 60, 21], // 1. çukurdan sonra
+    [61, 17, 75, 21], // tepe
+    [76, 19, 86, 21],
+    [90, 18, FOREST_W - 1, 21], // 2. çukurdan sonra
+    [10, 16, 14, 16], // dallar
+    [16, 13, 19, 13],
+    [28, 15, 32, 15],
+    [48, 16, 52, 16],
+    [55, 13, 58, 13],
+    [66, 14, 70, 14],
+    [79, 16, 82, 16],
+    [94, 15, 98, 15],
+    [101, 12, 104, 12],
+    [108, 15, 112, 15],
+  ];
+  const FOREST_OBJECTS = {
+    player: { x: 5, y: 18 },
+    spawns: { fromHall: { x: 5, y: 18, facing: 1 }, fromCity: { x: 113, y: 17, facing: -1 } },
+    doors: [
+      { x: 3, y: 18, to: 'hall', spawn: 'fromForest' },
+      { x: 116, y: 17, to: 'city', spawn: 'fromForest' },
+    ],
+    benches: [{ x: 8, y: 18 }, { x: 64, y: 16 }],
+    enemies: [
+      { type: 'mushroom', x: 26, y: 17 },
+      { type: 'wasp', x: 30, y: 10 },
+      { type: 'mushroom', x: 36, y: 17 },
+      { type: 'thorn', x: 51, y: 18 },
+      { type: 'mushroom', x: 57, y: 12 },
+      { type: 'wasp', x: 69, y: 9 },
+      { type: 'thorn', x: 73, y: 16 },
+      { type: 'mushroom', x: 81, y: 18 },
+      { type: 'wasp', x: 96, y: 10 },
+      { type: 'thorn', x: 103, y: 11 },
+      { type: 'mushroom', x: 109, y: 17 },
+    ],
+    beams: [12, 34, 58, 84, 106],
+  };
+
+  // ======================= 4. Gölge Şehir =======================
+  // Gece ve yağmur. Sokaklar ve çatılar: binaların üstünden atlayarak ilerlenir.
+  const CITY_W = 120;
+  const CITY_SOLIDS = [
+    [0, 0, 1, 21], // sol duvar
+    [CITY_W - 2, 0, CITY_W - 1, 21], // sağ duvar
+    [0, 19, 51, 21], // sokak
+    [55, 19, CITY_W - 1, 21], // kanalizasyon çukurundan sonra
+    [12, 16, 18, 18], // binalar (çatılarına çıkılır)
+    [22, 13, 27, 18],
+    [31, 16, 36, 18],
+    [39, 14, 42, 14], // tente
+    [45, 12, 50, 18], // yüksek bina
+    [58, 16, 63, 18],
+    [66, 13, 71, 18],
+    [74, 10, 78, 18], // kule
+    [81, 14, 85, 14], // köprü
+    [88, 16, 96, 18],
+    [99, 13, 103, 13], // balkon
+    [106, 16, 112, 18],
+  ];
+  const CITY_OBJECTS = {
+    player: { x: 5, y: 18 },
+    spawns: { fromForest: { x: 5, y: 18, facing: 1 } },
+    doors: [{ x: 3, y: 18, to: 'forest', spawn: 'fromCity' }],
+    benches: [{ x: 8, y: 18 }, { x: 92, y: 15 }],
+    merchant: { x: 10, y: 18 },
+    enemies: [
+      { type: 'rat', x: 20, y: 18 },
+      { type: 'rat', x: 29, y: 18 },
+      { type: 'guard', x: 34, y: 15 },
+      { type: 'archer', x: 48, y: 11 },
+      { type: 'rat', x: 56, y: 18 },
+      { type: 'guard', x: 61, y: 15 },
+      { type: 'bat', x: 70, y: 8 },
+      { type: 'archer', x: 76, y: 9 },
+      { type: 'guard', x: 84, y: 18 },
+      { type: 'rat', x: 86, y: 18 },
+      { type: 'archer', x: 101, y: 12 },
+      { type: 'bat', x: 100, y: 7 },
+      { type: 'guard', x: 109, y: 15 },
+    ],
+    signs: [{ x: 115, y: 18, text: 'ŞEHRİN KALBİ KAPALI · DEVAMI YAKINDA' }],
+    weather: 'rain',
   };
 
   // ======================= Ortak harita kurulumu =======================
@@ -163,5 +260,7 @@
   AK.LEVELS = {
     cave: makeLevel({ id: 'cave', name: 'UNUTULMUŞ MAĞARA', theme: 'cave', music: 'cave', W, H, SOLIDS, OBJECTS }),
     hall: makeLevel({ id: 'hall', name: 'ALTIN SALON', theme: 'hall', music: 'cave', W: HALL_W, H: 22, SOLIDS: HALL_SOLIDS, OBJECTS: HALL_OBJECTS }),
+    forest: makeLevel({ id: 'forest', name: 'FISILTI ORMANI', theme: 'forest', music: 'forest', W: FOREST_W, H: 22, SOLIDS: FOREST_SOLIDS, OBJECTS: FOREST_OBJECTS }),
+    city: makeLevel({ id: 'city', name: 'GÖLGE ŞEHİR', theme: 'city', music: 'city', W: CITY_W, H: 22, SOLIDS: CITY_SOLIDS, OBJECTS: CITY_OBJECTS }),
   };
 })();

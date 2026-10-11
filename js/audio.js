@@ -212,6 +212,15 @@
       this.tone({ type: 'square', f: 160, dur: 0.12, vol: 0.08 });
       this.tone({ type: 'square', f: 120, dur: 0.16, vol: 0.08, delay: 0.1 });
     }
+    sfx_shoot() {
+      if (this.throttle('shoot', 80)) return;
+      this.noise({ dur: 0.12, vol: 0.18, type: 'bandpass', f: 1800, f2: 700, q: 2 });
+      this.tone({ type: 'triangle', f: 700, f2: 300, dur: 0.1, vol: 0.06 });
+    }
+    sfx_parry() {
+      this.tone({ type: 'triangle', f: 2200, dur: 0.18, vol: 0.12, verb: 0.3 });
+      this.noise({ dur: 0.05, vol: 0.25, type: 'highpass', f: 4000 });
+    }
     sfx_ui() {
       this.tone({ type: 'square', f: 660, dur: 0.05, vol: 0.05 });
     }
@@ -243,6 +252,8 @@
       const m = (this.music = { name, gain, nodes: [], next: ctx.currentTime + 0.1, step: 0 });
       if (name === 'cave') this.startCave(m);
       if (name === 'boss') this.startBoss(m);
+      if (name === 'forest') this.startForest(m);
+      if (name === 'city') this.startCity(m);
       m.timer = setInterval(() => this.schedule(m), 90);
     }
 
@@ -292,6 +303,54 @@
       m.scale = ['D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5', 'A5'];
     }
 
+    // Uzun süren sabit bir uğultu sesi (orman / şehir için)
+    drone(m, notes, type, cutoff, vol) {
+      const ctx = this.ctx;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = cutoff;
+      const g = ctx.createGain();
+      g.gain.value = vol;
+      lp.connect(g);
+      g.connect(m.gain);
+      notes.forEach(([f, det]) => {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = f;
+        o.detune.value = det;
+        o.connect(lp);
+        o.start();
+        m.nodes.push(o);
+      });
+    }
+
+    // Orman: yumuşak uğultu, La majör pentatonik tıngırtılar, ara sıra kuş
+    startForest(m) {
+      this.drone(m, [[NOTE.A2, 0], [NOTE.E3, 4]], 'sine', 600, 0.12);
+      m.scale = ['A4', 'B4', 'C#5', 'E5', 'F#5', 'A5', 'B5'];
+    }
+
+    // Şehir: sürekli yağmur + derin uğultu + seyrek hüzünlü notalar (Do minör)
+    startCity(m) {
+      this.drone(m, [[NOTE.C2, -5], [NOTE.G2, 5]], 'triangle', 300, 0.16);
+      const ctx = this.ctx;
+      const rain = ctx.createBufferSource();
+      rain.buffer = this.noiseBuf;
+      rain.loop = true;
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'bandpass';
+      hp.frequency.value = 2600;
+      hp.Q.value = 0.4;
+      const rg = ctx.createGain();
+      rg.gain.value = 0.08;
+      rain.connect(hp);
+      hp.connect(rg);
+      rg.connect(m.gain);
+      rain.start();
+      m.nodes.push(rain);
+      m.scale = ['C4', 'D#4', 'F4', 'G4', 'G#4', 'C5', 'D#5'];
+    }
+
     // Boss: hızlı bas, davul, gergin melodi
     startBoss(m) {
       m.bass = ['D2', 'D2', 'D3', 'D2', 'F2', 'D2', 'G2', 'A2', 'D2', 'D2', 'D3', 'D2', 'A#2', 'A2', 'G2', 'F2'];
@@ -311,6 +370,26 @@
             this.tone({ type: 'triangle', f: NOTE[n] * 2, dur: 0.8, vol: 0.02, delay: Math.max(0, t), out: m.gain });
           }
           m.next += 0.5;
+        } else if (m.name === 'forest') {
+          const d = Math.max(0, t);
+          if (Math.random() < 0.5) {
+            const n = m.scale[Math.floor(Math.random() * m.scale.length)];
+            this.tone({ type: 'triangle', f: NOTE[n], dur: 0.9, vol: 0.07, delay: d, verb: 0.6, out: m.gain });
+          }
+          // kuş cıvıltısı
+          if (Math.random() < 0.06) {
+            const f = 2400 + Math.random() * 1200;
+            for (let i = 0; i < 3; i++) this.tone({ type: 'sine', f, f2: f * 1.3, dur: 0.06, vol: 0.025, delay: d + i * 0.09, out: m.gain, verb: 0.3 });
+          }
+          m.next += 0.35;
+        } else if (m.name === 'city') {
+          const d = Math.max(0, t);
+          if (Math.random() < 0.3) {
+            const n = m.scale[Math.floor(Math.random() * m.scale.length)];
+            this.tone({ type: 'sine', f: NOTE[n], dur: 2.6, vol: 0.08, a: 0.02, delay: d, verb: 0.8, out: m.gain });
+            this.tone({ type: 'sine', f: NOTE[n] * 1.5, dur: 1.2, vol: 0.02, delay: d + 0.02, out: m.gain });
+          }
+          m.next += 0.6;
         } else if (m.name === 'boss') {
           const s = m.step % 16;
           const d = Math.max(0, t);

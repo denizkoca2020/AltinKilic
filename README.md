@@ -23,13 +23,24 @@ iPad'de tarayıcıdan oynanan, Hollow Knight esintili 2D piksel-art aksiyon/plat
 | Kabukböcek | Platformda gidip gelir, kenarda döner | 2 | 3 |
 | Gölge Sinek | Havada süzülür, yaklaşınca kovalar | 3 | 4 |
 | Kabuk Muhafız | Görünce turuncu parlayıp hazırlanır, sonra hücum eder | 4 | 6 |
+| Mantarcık (orman) | Görünce zıplaya zıplaya yaklaşır | 2 | 3 |
+| Diken Arısı (orman) | Süzülür, titreyip üstünüze dalar | 2 | 4 |
+| Diken Sarmaşığı (orman) | Kıpırdamaz, diken fırlatır | 3 | 4 |
+| Lağım Faresi (şehir) | Küçük ve hızlı, koşarak saldırır | 1 | 1 |
+| Kalkanlı Nöbetçi (şehir) | Önden darbeleri kalkanla engeller; arkadan vurun | 3 | 6 |
+| Çatı Okçusu (şehir) | Çatı kenarına gelip nişan alarak ok atar | 2 | 5 |
+| Yarasa (şehir) | Karanlıkta kovalar | 2 | 4 |
+
+Diken ve oklar kalkanla engellenir ya da kılıçla havada kesilebilir.
 
 Canınız 5 altın miğfer. Düşmana değmek ya da çukura düşmek 1 can götürür. Kalkan önden gelen saldırıyı engeller.
 Canınız biterse bölüm baştan başlar; toplanan altın tarayıcıda saklanır.
 
 ## Dünya
 - **Unutulmuş Mağara:** antrenman kuklaları, ilk düşmanlar; sonunda Altın Salon'a açılan büyük taş kapı.
-- **Altın Salon:** dinlenme bankı, Yaşlı Tüccar, güçlü düşmanlar ve boss arenası.
+- **Altın Salon:** dinlenme bankı, Yaşlı Tüccar, güçlü düşmanlar ve boss arenası. Boss yenilince ormana kapı açılır.
+- **Fısıltı Ormanı:** açık hava, ağaç dalları, parlayan mantarlar, ateş böcekleri.
+- **Gölge Şehir:** yağmurlu gece, çatıdan çatıya geçiş, sokak lambaları, ikinci tüccar.
 - **Dinlenme bankı:** canları doldurur, kayıt noktasıdır; ölünce son oturulan bankta doğulur.
 
 ## Boss: Kabuk Kral
@@ -60,7 +71,7 @@ node tools/check-levels.js
 index.html, style.css, manifest.webmanifest
 lib/phaser.min.js          Phaser 3.90 (yerel kopya, MIT lisansı)
 js/art/                    Kodla üretilen piksel sanat (savaşçı, zemin, arka plan, efektler)
-js/level.js                Bölüm haritaları (Mağara, Altın Salon)
+js/level.js                Bölüm haritaları (Mağara, Altın Salon, Orman, Şehir)
 js/audio.js                Ses efektleri ve müzik (Web Audio)
 js/ui/Shop.js              Tüccar dükkânı
 js/input.js                Klavye + ortak giriş durumu

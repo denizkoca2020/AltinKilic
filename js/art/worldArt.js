@@ -30,6 +30,169 @@
       },
       fog: '220,170,110',
     },
+    // Fısıltı Ormanı: yosunlu toprak, ağaçlar, yeşil ışık
+    forest: {
+      tile: { deep: '#0c160f', dark: '#172619', mid: '#2a3a22', light: '#3f5530', rim: '#6f8f4a', moss: '#4f8a3a', mossLight: '#9fd36a' },
+      bg: {
+        style: 'trees',
+        sky: ['#08140f', '#1b3a2a', '#0b1a12'],
+        far: '#133024', farLit: '#1c4231', near: '#0b1c13', nearLit: '#163323', leaf: '#0f2a1b', leafLit: '#1f4a30',
+      },
+      fog: '150,210,160',
+    },
+    // Gölge Şehir: gece, mor taş, ışıklı pencereler
+    city: {
+      tile: { deep: '#100e18', dark: '#1d1929', mid: '#2f2942', light: '#463e60', rim: '#7d72a0', moss: '#4a4560', mossLight: '#8a83a8' },
+      bg: {
+        style: 'city',
+        sky: ['#070512', '#241a3a', '#0f0b1c'],
+        far: '#1a1430', near: '#0e0a1a', edge: '#2a2244', window: '#f2c75a', windowDim: '#7a5a2a', moon: '#e8e0c8',
+      },
+      fog: '150,130,200',
+    },
+  };
+
+  // ---------- Orman ve şehir arka plan stilleri ----------
+  AK.BG_STYLES = {
+    trees(scene, name, B, H) {
+      // uzak: degrade + ince uzun gövdeler, tepelerinde yaprak bulutları
+      {
+        const W = 480;
+        const { canvas, ctx } = AK.makeCanvas(W, H);
+        const grd = ctx.createLinearGradient(0, 0, 0, H);
+        B.sky.forEach((c, i) => grd.addColorStop(i / 2, c));
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, H);
+        const r = AK.rng(311);
+        const blob = (cx, cy, rx, ry, col) => {
+          ctx.fillStyle = col;
+          for (let y = -ry; y <= ry; y++) {
+            const w = Math.round(rx * Math.sqrt(1 - (y * y) / (ry * ry)));
+            ctx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2, 1);
+          }
+        };
+        for (let i = 0; i < 16; i++) {
+          const x = Math.floor(r() * W), w = 4 + Math.floor(r() * 6), top = 20 + Math.floor(r() * 70);
+          wrapFill(ctx, W, (o) => {
+            ctx.fillStyle = B.far;
+            ctx.fillRect(x + o, top, w, H - top);
+            ctx.fillStyle = B.farLit;
+            ctx.fillRect(x + o, top, 1, H - top);
+            for (let k = 0; k < 3; k++) blob(x + o + w / 2 + (k - 1) * 10, top + k * 6, 16, 10, k === 1 ? B.farLit : B.far);
+          });
+        }
+        scene.textures.addCanvas('bg-far-' + name, canvas);
+      }
+      // orta: kalın gövdeler, kökler, sarmaşıklar, çalılar
+      {
+        const W = 640;
+        const { canvas, ctx } = AK.makeCanvas(W, H);
+        const r = AK.rng(911);
+        for (let i = 0; i < 6; i++) {
+          const x = Math.floor(r() * W), w = 14 + Math.floor(r() * 16);
+          wrapFill(ctx, W, (o) => {
+            ctx.fillStyle = B.near;
+            ctx.fillRect(x + o, 0, w, H);
+            // kökler
+            for (let k = 0; k < 10; k++) ctx.fillRect(x + o - k, H - 10 + Math.floor(k / 2), w + k * 2, 1);
+            ctx.fillStyle = B.nearLit;
+            ctx.fillRect(x + o + w - 2, 0, 2, H);
+            for (let y = 10; y < H; y += 23) ctx.fillRect(x + o + 3, y, w - 8, 1); // kabuk çizgisi
+          });
+        }
+        // sarkan sarmaşıklar
+        ctx.fillStyle = B.leaf;
+        for (let i = 0; i < 22; i++) {
+          const x = Math.floor(r() * W), len = 20 + Math.floor(r() * 80);
+          wrapFill(ctx, W, (o) => {
+            for (let y = 0; y < len; y++) ctx.fillRect(x + o + Math.round(Math.sin(y / 7) * 2), y, 2, 1);
+          });
+        }
+        // yaprak tavanı
+        for (let x = 0; x < W; x++) {
+          const h = 12 + Math.round(Math.sin(x / 13) * 5 + Math.sin(x / 5) * 2);
+          ctx.fillStyle = B.leaf;
+          ctx.fillRect(x, 0, 1, h);
+          ctx.fillStyle = B.leafLit;
+          ctx.fillRect(x, h, 1, 1);
+        }
+        // çalılar
+        ctx.fillStyle = B.near;
+        for (let x = 0; x < W; x++) {
+          const h = 22 + Math.round(Math.sin(x / 9) * 6 + Math.sin(x / 23) * 6);
+          ctx.fillRect(x, H - h, 1, h);
+        }
+        scene.textures.addCanvas('bg-mid-' + name, canvas);
+      }
+    },
+
+    city(scene, name, B, H) {
+      // uzak: gece göğü, ay, yıldızlar, uzak bina siluetleri
+      {
+        const W = 480;
+        const { canvas, ctx } = AK.makeCanvas(W, H);
+        const grd = ctx.createLinearGradient(0, 0, 0, H);
+        B.sky.forEach((c, i) => grd.addColorStop(i / 2, c));
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, H);
+        const r = AK.rng(777);
+        for (let i = 0; i < 50; i++) {
+          ctx.fillStyle = r() < 0.3 ? '#ffffff' : '#8a83a8';
+          ctx.fillRect(Math.floor(r() * W), Math.floor(r() * H * 0.5), 1, 1);
+        }
+        // ay
+        ctx.fillStyle = B.moon;
+        for (let y = -12; y <= 12; y++) {
+          const w = Math.round(Math.sqrt(144 - y * y));
+          ctx.fillRect(360 - w, 46 + y, w * 2, 1);
+        }
+        ctx.fillStyle = '#c8bfa4';
+        ctx.fillRect(354, 42, 4, 3);
+        ctx.fillRect(364, 52, 3, 3);
+        let x = 0;
+        while (x < W) {
+          const w = 18 + Math.floor(r() * 30), h = 60 + Math.floor(r() * 110);
+          ctx.fillStyle = B.far;
+          ctx.fillRect(x, H - h, w, h);
+          if (r() < 0.4) ctx.fillRect(x + Math.floor(w / 2) - 1, H - h - 10, 2, 10); // anten / kule
+          for (let wy = H - h + 6; wy < H - 10; wy += 9)
+            for (let wx = x + 3; wx < x + w - 3; wx += 6)
+              if (r() < 0.18) { ctx.fillStyle = r() < 0.5 ? B.window : B.windowDim; ctx.fillRect(wx, wy, 2, 3); }
+          x += w + Math.floor(r() * 6);
+        }
+        scene.textures.addCanvas('bg-far-' + name, canvas);
+      }
+      // orta: yakın binalar, çatılar, bacalar, ışıklı pencereler
+      {
+        const W = 640;
+        const { canvas, ctx } = AK.makeCanvas(W, H);
+        const r = AK.rng(4242);
+        let x = 0;
+        while (x < W - 30) {
+          const w = 40 + Math.floor(r() * 40), h = 90 + Math.floor(r() * 100), top = H - h;
+          ctx.fillStyle = B.near;
+          ctx.fillRect(x, top, w, h);
+          // üçgen çatı
+          for (let i = 0; i < 14; i++) ctx.fillRect(x + i, top - 14 + i, w - i * 2, 1);
+          ctx.fillStyle = B.edge;
+          for (let i = 0; i < 14; i++) ctx.fillRect(x + i, top - 14 + i, 1, 1);
+          ctx.fillRect(x + w - 2, top, 2, h);
+          // baca
+          ctx.fillStyle = B.near;
+          ctx.fillRect(x + w - 14, top - 22, 6, 14);
+          // pencereler
+          for (let wy = top + 10; wy < H - 20; wy += 18)
+            for (let wx = x + 6; wx < x + w - 10; wx += 14) {
+              const lit = r() < 0.3;
+              ctx.fillStyle = lit ? B.window : '#16112a';
+              ctx.fillRect(wx, wy, 6, 8);
+              if (lit) { ctx.fillStyle = B.windowDim; ctx.fillRect(wx, wy + 4, 6, 1); ctx.fillRect(wx + 3, wy, 1, 8); }
+            }
+          x += w + 10 + Math.floor(r() * 30);
+        }
+        scene.textures.addCanvas('bg-mid-' + name, canvas);
+      }
+    },
   };
 
   // ---------- Zemin karoları ----------
@@ -132,6 +295,9 @@
   function buildBackgrounds(scene, name, B, fogRgb) {
     const H = 270;
 
+    if (B.style) {
+      AK.BG_STYLES[B.style](scene, name, B, H); // orman / şehir
+    } else {
     // uzak katman: gökyüzü degradesi + uzak kuleler
     {
       const W = 480;
@@ -210,6 +376,8 @@
         });
       }
       scene.textures.addCanvas('bg-mid-' + name, canvas);
+    }
+
     }
 
     // sis
@@ -417,6 +585,51 @@
       g.set(6, 7, P.goldShine);
       g.outline(P.outline);
       AK.addGrid(scene, 'banner', g);
+    }
+
+    // parlayan orman mantarı 12x14
+    {
+      const g = new AK.PixelGrid(12, 14);
+      g.rect(5, 7, 2, 7, '#cfe8d8');
+      g.ellipse(6, 5, 5, 3, '#3fc9b8');
+      g.rect(1, 6, 10, 1, '#1f8a80');
+      g.set(4, 3, '#b8fff4');
+      g.set(7, 4, '#b8fff4');
+      g.outline(P.outline);
+      AK.addGrid(scene, 'shroom', g);
+    }
+
+    // sokak lambası 10x44
+    {
+      const g = new AK.PixelGrid(10, 44);
+      g.rect(4, 8, 2, 34, '#2a2638');
+      g.rect(4, 8, 1, 34, '#4a4560');
+      g.rect(2, 42, 6, 2, '#2a2638');
+      g.rect(1, 1, 8, 2, '#2a2638');
+      g.rect(2, 3, 6, 5, P.goldLight);
+      g.rect(3, 4, 4, 3, P.goldShine);
+      g.rect(4, 0, 2, 1, '#2a2638');
+      g.outline(P.outline);
+      AK.addGrid(scene, 'streetlamp', g);
+    }
+
+    // tahta tabela 18x20
+    {
+      const g = new AK.PixelGrid(18, 20);
+      g.rect(8, 8, 2, 12, P.woodDark);
+      g.rect(1, 1, 16, 9, P.wood);
+      g.rect(1, 1, 16, 1, '#7a5236');
+      g.rect(3, 4, 9, 1, P.woodDark);
+      g.rect(3, 6, 12, 1, P.woodDark);
+      g.outline(P.outline);
+      AK.addGrid(scene, 'sign', g);
+    }
+
+    // yağmur damlası
+    {
+      const g = new AK.PixelGrid(1, 6);
+      g.rect(0, 0, 1, 6, '#9aa8d8');
+      AK.addGrid(scene, 'rain', g);
     }
 
     // etkileşim oku (bank / kapı / tüccar üstünde süzülür)

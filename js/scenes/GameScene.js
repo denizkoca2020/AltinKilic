@@ -50,7 +50,7 @@
 
       // ---- Dinlenme bankları ----
       this.interactables = [];
-      this.benches = L.OBJECTS.benches.map((b, i) => {
+      this.benches = (L.OBJECTS.benches || []).map((b, i) => {
         const bx = b.x * t + t / 2, by = (b.y + 1) * t;
         const img = this.add.image(bx, by, 'bench').setOrigin(0.5, 1).setDepth(4);
         const glow = this.add.image(bx, by - 10, 'glow').setDepth(3).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.4);
@@ -66,6 +66,13 @@
         this.add.image(mx, my - 14, 'glow').setDepth(3).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3).setScale(0.8);
         this.add.sprite(mx, my, 'merchant', 'm0').setOrigin(0.5, 1).setDepth(4).setFlipX(true).play('merchant-idle');
         this.interactables.push({ x: mx, y: my, w: 48, label: 'KONUŞ', use: () => AK.shop.open(this) });
+      }
+
+      // ---- Tabelalar ----
+      for (const sg of L.OBJECTS.signs || []) {
+        const sx = sg.x * t + t / 2, sy = (sg.y + 1) * t;
+        this.add.image(sx, sy, 'sign').setOrigin(0.5, 1).setDepth(4);
+        this.interactables.push({ x: sx, y: sy, w: 30, label: 'OKU', use: () => AK.toast(sg.text, 3500) });
       }
 
       // ---- Kapılar (bölümler arası geçiş) ----
@@ -98,7 +105,7 @@
 
       // ---- Düşmanlar ve altınlar ----
       this.enemies = this.add.group();
-      for (const e of L.OBJECTS.enemies) {
+      for (const e of L.OBJECTS.enemies || []) {
         const Cls = AK.ENEMY_TYPES[e.type];
         const ex = e.x * t + t / 2;
         const ey = e.type === 'flyer' ? e.y * t + t / 2 : (e.y + 1) * t;
@@ -109,6 +116,10 @@
       this.physics.add.collider(this.coins, this.ground);
       this.physics.add.overlap(this.player, this.enemies, (p, e) => this.onEnemyContact(e));
       this.physics.add.overlap(this.player, this.coins, (p, c) => this.collectCoin(c));
+      // düşman mermileri (diken, ok)
+      this.projectiles = this.add.group();
+      this.physics.add.overlap(this.player, this.projectiles, (p, pr) => this.onProjectileContact(pr));
+      // zemine/duvara çarpma, update içinde okun ucuyla kontrol edilir (bkz. updateProjectiles)
 
       // ---- Kamera ----
       const cam = this.cameras.main;
@@ -118,7 +129,8 @@
       cam.setRoundPixels(true);
       cam.fadeIn(600, 5, 7, 13);
 
-      this.fx.ambient(worldW, worldH);
+      this.fx.ambient(worldW, worldH, L.theme);
+      if (L.OBJECTS.weather === 'rain') this.fx.rain();
       AK.audio.playMusic(L.music);
       if (data.level || !data.respawn) this.time.delayedCall(500, () => AK.toast(L.name, 2600));
 
@@ -161,15 +173,41 @@
         this.tweens.add({ targets: b, scaleX: 0.94, duration: 1800 + r() * 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
 
-      // yüzeylerdeki yosun / çim öbekleri (yalnızca mağarada)
-      if (L.theme === 'cave') for (let y = 1; y < L.H; y++)
+      // ormanda parlayan mantarlar, şehirde sokak lambaları (yüzeylere serpiştirilir)
+      const surfaces = [];
+      for (let y = 1; y < L.H; y++)
+        for (let x = 2; x < L.W - 2; x++) if (grid[y][x] && !grid[y - 1][x]) surfaces.push([x, y]);
+      if (L.theme === 'forest') {
+        for (const [x, y] of surfaces) {
+          if (r() > 0.09) continue;
+          const sx = x * t + t / 2 + Math.round(r() * 6 - 3), sy = y * t;
+          this.add.image(sx, sy + 1, 'shroom').setOrigin(0.5, 1).setDepth(3).setFlipX(r() < 0.5);
+          const gl = this.add.image(sx, sy - 6, 'glow').setDepth(3).setBlendMode(Phaser.BlendModes.ADD).setTint(0x60ffe0).setScale(0.45).setAlpha(0.5);
+          this.tweens.add({ targets: gl, alpha: 0.25, duration: 1200 + r() * 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        }
+      }
+      if (L.theme === 'city') {
+        let lastX = -99;
+        for (const [x, y] of surfaces) {
+          if (y !== 19 || x - lastX < 9) continue; // yalnızca sokak hizasında, aralıklı
+          lastX = x;
+          const sx = x * t + t / 2, sy = y * t;
+          this.add.image(sx, sy, 'streetlamp').setOrigin(0.5, 1).setDepth(1);
+          const gl = this.add.image(sx, sy - 38, 'glow').setDepth(6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5);
+          this.tweens.add({ targets: gl, alpha: 0.38, duration: 120 + r() * 200, yoyo: true, repeat: -1, repeatDelay: 600 + r() * 2000 });
+          this.add.image(sx, sy - 10, 'glow').setDepth(-5).setScale(2).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.15);
+        }
+      }
+
+      // yüzeylerdeki yosun / çim öbekleri (mağara ve ormanda)
+      if (L.theme === 'cave' || L.theme === 'forest') for (let y = 1; y < L.H; y++)
         for (let x = 0; x < L.W; x++) {
           if (!grid[y][x] || grid[y - 1][x] || r() > 0.4) continue;
           this.add.image(x * t + t / 2, y * t + 1, 'grass', 'g' + Math.floor(r() * 4)).setOrigin(0.5, 1).setDepth(3);
         }
 
       // asılı fenerler (hafifçe sallanır, ışığı titrer)
-      for (const ln of L.OBJECTS.lanterns) {
+      for (const ln of L.OBJECTS.lanterns || []) {
         const x = ln.x * t + t / 2, y = ln.y * t;
         const chainLen = ln.len * t;
         const c = this.add.container(x, y).setDepth(1);
@@ -252,6 +290,19 @@
       return !!tile && tile.index !== -1;
     }
 
+    // iki nokta arasında duvar/zemin yok mu? (okçunun nişan alması için)
+    // (mermilerin zemine çarpmadığı ilk 12 px atlanır; okun kalınlığı için iki çizgi kontrol edilir)
+    hasLineOfSight(x0, y0, x1, y1) {
+      const d = Math.hypot(x1 - x0, y1 - y0);
+      const n = Math.ceil(d / 3);
+      for (const off of [-2, 3]) {
+        for (let i = Math.ceil(12 / 3); i < n; i++) {
+          if (this.isSolidAt(x0 + ((x1 - x0) * i) / n, y0 + off + ((y1 - y0) * i) / n)) return false;
+        }
+      }
+      return true;
+    }
+
     spawnCoins(x, y, n) {
       for (let i = 0; i < n; i++) this.coins.add(new AK.Coin(this, x, y));
     }
@@ -305,11 +356,19 @@
 
     onSwordSwing(rect) {
       let hit = false;
+      let blocked = false; // bir nöbetçinin kalkanına çarptı mı
       const p = this.player;
       for (const e of this.enemies.getChildren().slice()) {
         if (e.dead) continue;
         const r = e.hitRect();
         if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
+        // Kalkanlı Nöbetçi önden gelen darbeyi engeller
+        if (e.shieldsFrom && e.shieldsFrom(p.x)) {
+          blocked = true;
+          this.fx.blockSparks(e.x + e.dir * 10, p.y - 16);
+          AK.sfx('block');
+          continue;
+        }
         hit = true;
         e.takeHit(p.facing, p.damage);
         if (!e.dead) AK.sfx('hit');
@@ -326,7 +385,15 @@
           this.updateBossBar();
         }
       }
-      if (hit) p.recoil(-p.facing * AK.TUNING.hitRecoil, 110);
+      if (blocked) p.recoil(-p.facing * 190, 170); // kalkandan sekme daha güçlü
+      else if (hit) p.recoil(-p.facing * AK.TUNING.hitRecoil, 110);
+      // havadaki mermiler kılıçla kesilebilir
+      for (const pr of this.projectiles.getChildren().slice()) {
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, pr.getBounds())) continue;
+        this.fx.hitSparks(pr.x, pr.y);
+        AK.sfx('parry');
+        pr.destroy();
+      }
       for (const d of this.dummies) {
         const r = d.getHitRect();
         if (!Phaser.Geom.Intersects.RectangleToRectangle(rect, r)) continue;
@@ -339,6 +406,40 @@
         this.cameras.main.shake(90, 0.006);
         this.hitStop(70);
       }
+    }
+
+    // ---------- Mermiler ----------
+    fireProjectile(x, y, vx, vy, tex) {
+      this.projectiles.add(new AK.Projectile(this, x, y, vx, vy, tex));
+    }
+
+    // Okun ucu duvara/zemine girince kırılır. Atıldıktan hemen sonra (yay boyu, ~12 px) kontrol edilmez,
+    // böylece çatı kenarından yapılan atışlar kenarı sıyırıp kırılmaz (hasLineOfSight ile aynı kural).
+    updateProjectiles(time) {
+      for (const pr of this.projectiles.getChildren().slice()) {
+        if (time > pr.dieAt) { pr.destroy(); continue; }
+        if (time < pr.solidAt) continue;
+        const v = pr.body.velocity, sp = Math.hypot(v.x, v.y) || 1;
+        if (this.isSolidAt(pr.x + (v.x / sp) * 5, pr.y + (v.y / sp) * 5)) this.breakProjectile(pr);
+      }
+    }
+
+    breakProjectile(pr) {
+      this.fx.dust.explode(3, pr.x, pr.y);
+      pr.destroy();
+    }
+
+    onProjectileContact(pr) {
+      const p = this.player;
+      const res = p.hurt(pr.x - Math.sign(pr.body.velocity.x || 1) * 4);
+      if (!res) return;
+      if (res === 'blocked') {
+        this.fx.blockSparks(p.x + p.facing * 9, pr.y);
+        AK.sfx('block');
+      } else {
+        this.onPlayerDamaged(res);
+      }
+      pr.destroy();
     }
 
     // Vuruş anında kısa donma: darbeye ağırlık katar
@@ -408,6 +509,7 @@
       this.updateInteract();
       for (const e of this.enemies.getChildren().slice()) e.update(time, p);
       if (this.boss || this.hazards) this.updateBoss(time);
+      this.updateProjectiles(time);
 
       if (p.onGround && p.state !== 'dash') { this.safePos.x = p.x; this.safePos.y = p.y; }
 

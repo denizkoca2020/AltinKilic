@@ -13,6 +13,7 @@ const path = require('path');
 global.window = {};
 const AK = (global.AK = window.AK = { TILE_VARIANTS: 3, TILE_DEEP_BASE: 48 });
 require(path.join(__dirname, '..', 'js', 'level.js'));
+const FLYING = ['flyer', 'wasp', 'bat']; // js/objects/enemies.js içindeki AK.FLYING_TYPES ile aynı
 
 const MAX_RISE = 3;
 const MAX_JUMP_DX = 5;
@@ -50,7 +51,7 @@ for (const L of Object.values(AK.LEVELS)) {
 
   const problems = [];
   for (const e of L.OBJECTS.enemies || []) {
-    if (e.type === 'flyer') {
+    if (FLYING.includes(e.type)) {
       // uçan düşman: erişilebilir bir yerden fark edilebiliyor mu?
       const fx = e.x * T + 8, fy = e.y * T + 8;
       const near = [...seen].some((k) => {
@@ -68,6 +69,7 @@ for (const L of Object.values(AK.LEVELS)) {
     ...(L.OBJECTS.merchant ? [['tüccar', L.OBJECTS.merchant]] : []),
     ...(L.OBJECTS.boss ? [['boss', L.OBJECTS.boss]] : []),
     ...(L.OBJECTS.shrine ? [['sunak', L.OBJECTS.shrine]] : []),
+    ...(L.OBJECTS.signs || []).map((t) => ['tabela', t]),
   ];
   for (const [name, o] of named) if (!reach(o.x, o.y)) problems.push(`${name} (${o.x},${o.y}) ulaşılamıyor`);
 
